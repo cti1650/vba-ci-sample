@@ -1,0 +1,28 @@
+name: VBS CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  vbs-test:
+    runs-on: windows-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Convert VBA to VBS
+        shell: pwsh
+        run: |
+          # src, test の両方を変換
+          ./scripts/convert-vba-to-vbs.ps1 -InputDir "./vba/src" -OutputDir "./vbs/generated"
+          ./scripts/convert-vba-to-vbs.ps1 -InputDir "./vba/test" -OutputDir "./vbs/generated"
+
+      - name: Run VBS tests
+        shell: cmd
+        run: cscript //nologo vbs/run-tests.vbs

@@ -19,3 +19,6 @@ C:\temp\
 
 # PowerShell
 *.ps1xml
+
+# Generated VBS files (auto-converted from VBA)
+vbs/generated/
