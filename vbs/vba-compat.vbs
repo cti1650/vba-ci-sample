@@ -132,6 +132,21 @@ Function CLngPtr(ByVal value)
 End Function
 
 ' ============================================
+' Utils モジュールのモック
+' VBA: Utils.Fail → VBS: UtilsFail
+' ============================================
+Sub UtilsFail(ByVal code, ByVal message)
+    Err.Raise code, "VBA_TEST", message
+End Sub
+
+Sub UtilsWriteTextFile(ByVal path, ByVal text)
+    Dim f
+    Set f = fso_.CreateTextFile(path, True)
+    f.WriteLine text
+    f.Close
+End Sub
+
+' ============================================
 ' テスト用アサーション関数
 ' ============================================
 Sub Assert(ByVal condition, ByVal message)

@@ -136,6 +136,10 @@ function Convert-VbaToVbs {
         # VBSでは Print が予約語のため、関数呼び出しに変換
         $converted = $converted -replace "\bDebug\.Print\b", "DebugPrint"
 
+        # モジュール名プレフィックスを変換 (VBSではモジュール名.関数名 で呼べない)
+        # 例: Utils.Fail → UtilsFail, Utils.WriteTextFile → UtilsWriteTextFile
+        $converted = $converted -replace "\bUtils\.", "Utils"
+
         # Static 変数 → Dim (VBSにはStaticがない)
         $converted = $converted -replace "^\s*Static\s+", "Dim "
 

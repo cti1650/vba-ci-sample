@@ -33,5 +33,10 @@ jobs:
           }
 
       - name: Run VBS tests
-        shell: cmd
-        run: cscript //nologo vbs/run-tests.vbs
+        shell: pwsh
+        run: |
+          cscript //nologo vbs/run-tests.vbs
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::error::VBS tests failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
