@@ -265,7 +265,7 @@ function Convert-VbaToVbs {
         # VBSでは With New 構文がサポートされていない
         if ($converted -match "^\s*With\s+New\s+(\w+)") {
             $tempClassName = $matches[1]
-            $converted = $converted -replace "^\s*With\s+New\s+(\w+)", "Dim withTemp_$1 : Set withTemp_$1 = New $1 : With withTemp_$1"
+            $converted = $converted -replace "^\s*With\s+New\s+\w+", "Dim withTemp_$tempClassName : Set withTemp_$tempClassName = New $tempClassName : With withTemp_$tempClassName"
         }
 
         # ThisWorkbook.path → GetScriptDir() (vba-compat.vbs で提供)
