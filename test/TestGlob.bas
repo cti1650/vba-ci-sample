@@ -243,3 +243,59 @@ Public Sub Test_ChangeType()
         Utils.Fail 2052, "GetCount expected 0 after type change (data should be reset)"
     End If
 End Sub
+
+' ============================================
+' iGlob ファイル検索テスト
+' ============================================
+
+Public Sub Test_iGlob_FindClsFiles()
+    ' src/*.cls ファイルを検索（CI環境: build/vbs/ から実行）
+    Dim g As Glob
+    Set g = New Glob
+    g.SetType = GlobDataType.dictionary
+
+    Dim result As Object
+    ' GetScriptDir() は build/vbs を返すので、../../src/*.cls でsrcを参照
+    Set result = g.iGlob(ThisWorkbook.path & "\..\..\src\*.cls")
+
+    ' Calculator.cls と Glob.cls が存在するはず
+    If result.Count < 2 Then
+        Utils.Fail 2060, "iGlob should find at least 2 .cls files in src/"
+    End If
+End Sub
+
+Public Sub Test_iGlob_FindBasFiles()
+    ' test/*.bas ファイルを検索
+    Dim g As Glob
+    Set g = New Glob
+    g.SetType = GlobDataType.dictionary
+
+    Dim result As Object
+    Set result = g.iGlob(ThisWorkbook.path & "\..\..\test\*.bas")
+
+    ' TestCalculator.bas と TestGlob.bas が存在するはず
+    If result.Count < 2 Then
+        Utils.Fail 2061, "iGlob should find at least 2 .bas files in test/"
+    End If
+End Sub
+
+Public Sub Test_iGlob_WithForEach()
+    ' For Each で結果をイテレートできることを確認
+    Dim g As Glob
+    Set g = New Glob
+    g.SetType = GlobDataType.dictionary
+
+    Dim result As Object
+    Set result = g.iGlob(ThisWorkbook.path & "\..\..\src\*.cls")
+
+    Dim count As Long
+    Dim item As Variant
+    count = 0
+    For Each item In result
+        count = count + 1
+    Next
+
+    If count < 2 Then
+        Utils.Fail 2062, "For Each should iterate at least 2 items"
+    End If
+End Sub
