@@ -37,18 +37,18 @@ End Sub
 Public Sub Clear()
 
     DefPath = ThisWorkbook.path & "\"
-    count = 0
     Select Case Me.GetType
     Case GlobDataType.dictionary
-        Me.SetType = dictionary
+        Me.SetType = GlobDataType.dictionary
     Case GlobDataType.Collection
-        Me.SetType = Collection
+        Me.SetType = GlobDataType.Collection
     Case GlobDataType.StringArray
-        Me.SetType = StringArray
+        Me.SetType = GlobDataType.StringArray
     Case GlobDataType.ArrayList
-        Me.SetType = ArrayList
+        Me.SetType = GlobDataType.ArrayList
     Case Else
-        Me.SetType = Collection
+        ' VBSではCollectionモックがFor Eachに対応していないため、Dictionaryをデフォルトにする
+        Me.SetType = GlobDataType.dictionary
     End Select
 
 End Sub

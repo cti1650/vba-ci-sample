@@ -88,6 +88,16 @@ Class Collection
     Public Sub Clear()
         items_.RemoveAll
     End Sub
+
+    ' For Eachサポート: 内部Dictionaryのアイテムコレクションを返す
+    Public Function Items()
+        Set Items = items_.Items
+    End Function
+
+    ' 内部Dictionaryを直接取得（For Each用）
+    Public Function GetInternalDict()
+        Set GetInternalDict = items_
+    End Function
 End Class
 
 ' Collection のファクトリ関数

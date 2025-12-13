@@ -246,20 +246,22 @@ End Sub
 
 ' ============================================
 ' iGlob ファイル検索テスト
+' 注意: iGlob内でMe.Clearが呼ばれ、デフォルトでDictionaryが使われる
+' VBSでもFor Eachでイテレート可能
 ' ============================================
 
 Public Sub Test_iGlob_FindClsFiles()
     ' src/*.cls ファイルを検索（CI環境: build/vbs/ から実行）
     Dim g As Glob
     Set g = New Glob
-    g.SetType = GlobDataType.dictionary
 
-    Dim result As Object
+    ' iGlob内でClearが呼ばれSetTypeがCollectionになる
     ' GetScriptDir() は build/vbs を返すので、../../src/*.cls でsrcを参照
+    Dim result As Variant
     Set result = g.iGlob(ThisWorkbook.path & "\..\..\src\*.cls")
 
     ' Calculator.cls と Glob.cls が存在するはず
-    If result.Count < 2 Then
+    If g.GetCount < 2 Then
         Utils.Fail 2060, "iGlob should find at least 2 .cls files in src/"
     End If
 End Sub
@@ -268,13 +270,12 @@ Public Sub Test_iGlob_FindBasFiles()
     ' test/*.bas ファイルを検索
     Dim g As Glob
     Set g = New Glob
-    g.SetType = GlobDataType.dictionary
 
-    Dim result As Object
+    Dim result As Variant
     Set result = g.iGlob(ThisWorkbook.path & "\..\..\test\*.bas")
 
     ' TestCalculator.bas と TestGlob.bas が存在するはず
-    If result.Count < 2 Then
+    If g.GetCount < 2 Then
         Utils.Fail 2061, "iGlob should find at least 2 .bas files in test/"
     End If
 End Sub
@@ -283,11 +284,11 @@ Public Sub Test_iGlob_WithForEach()
     ' For Each で結果をイテレートできることを確認
     Dim g As Glob
     Set g = New Glob
-    g.SetType = GlobDataType.dictionary
 
-    Dim result As Object
+    Dim result As Variant
     Set result = g.iGlob(ThisWorkbook.path & "\..\..\src\*.cls")
 
+    ' デフォルトでDictionaryが使われるため、For Eachでイテレート可能
     Dim count As Long
     Dim item As Variant
     count = 0
