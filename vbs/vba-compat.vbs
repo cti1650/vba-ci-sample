@@ -27,7 +27,7 @@ End Sub
 ' ============================================
 ' Collection クラス (VBSにはないのでモック)
 ' ============================================
-Class CollectionClass
+Class Collection
     Private items_
 
     Private Sub Class_Initialize()
@@ -92,7 +92,7 @@ End Class
 
 ' Collection のファクトリ関数
 Function CreateCollection()
-    Set CreateCollection = New CollectionClass
+    Set CreateCollection = New Collection
 End Function
 
 ' ============================================
