@@ -132,8 +132,7 @@ function Convert-VbaToVbs {
         # 例: Private WithEvents obj As Object → Private obj
         $converted = $line -replace "\bWithEvents\s+", ""
 
-        # Debug.Print → WScript.Echo
-        $converted = $converted -replace "\bDebug\.Print\b", "WScript.Echo"
+        # Debug.Print はそのまま (vba-compat.vbs でモック提供)
 
         # Static 変数 → Dim (VBSにはStaticがない)
         $converted = $converted -replace "^\s*Static\s+", "Dim "

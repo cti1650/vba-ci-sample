@@ -2,10 +2,16 @@
 ' VBAから変換されたVBSファイルを読み込み、Test_* 関数を自動検出して実行する
 Option Explicit
 
-Dim fso, scriptDir, genDir
+Dim fso, scriptDir, genDir, compatPath
 Set fso = CreateObject("Scripting.FileSystemObject")
 scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
 genDir = fso.BuildPath(scriptDir, "generated")
+compatPath = fso.BuildPath(scriptDir, "vba-compat.vbs")
+
+' VBA互換レイヤーを読み込み
+If fso.FileExists(compatPath) Then
+    ExecuteGlobal fso.OpenTextFile(compatPath).ReadAll
+End If
 
 ' 生成されたVBSファイルを全て読み込み
 Dim file, files, code
