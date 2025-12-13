@@ -19,7 +19,7 @@ Public Sub Test_Subtract()
   End If
 End Sub
 
-' 意図的に失敗するテスト（CI動作確認用）
-Public Sub Test_ShouldFail()
-  Utils.Fail 9999, "This test is expected to fail"
+' 構文エラーテスト用（CI動作確認用）
+Public Sub Test_SyntaxError(
+  ' ← 括弧が閉じていない構文エラー
 End Sub
