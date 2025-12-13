@@ -14,7 +14,7 @@ If fso.FileExists(compatPath) Then
 End If
 
 ' 生成されたVBSファイルを全て読み込み
-Dim file, files, code
+Dim file, files, code, fileContent, enumsPath
 code = ""
 
 If Not fso.FolderExists(genDir) Then
@@ -22,15 +22,33 @@ If Not fso.FolderExists(genDir) Then
     WScript.Quit 1
 End If
 
+' _enums.vbs を最初に読み込む（Enum定数の定義）
+enumsPath = fso.BuildPath(genDir, "_enums.vbs")
+If fso.FileExists(enumsPath) Then
+    ExecuteGlobal fso.OpenTextFile(enumsPath).ReadAll
+End If
+
+' 各ファイルを個別にExecuteGlobalで実行
 Set files = fso.GetFolder(genDir).Files
 For Each file In files
     If LCase(fso.GetExtensionName(file.Name)) = "vbs" Then
-        code = code & vbCrLf & fso.OpenTextFile(file.Path).ReadAll
+        ' _enums.vbs は既に読み込み済みなのでスキップ
+        If LCase(file.Name) = "_enums.vbs" Then
+            ' Skip
+        Else
+            fileContent = fso.OpenTextFile(file.Path).ReadAll
+            On Error Resume Next
+            ExecuteGlobal fileContent
+            If Err.Number <> 0 Then
+                WScript.Echo "ERROR loading " & file.Name & ": " & Err.Description
+                Err.Clear
+            End If
+            On Error GoTo 0
+            ' テスト検出用にコードを蓄積
+            code = code & vbCrLf & fileContent
+        End If
     End If
 Next
-
-' コードを実行してクラスや関数を定義
-ExecuteGlobal code
 
 ' Test_ で始まる関数を検出して実行
 Dim passCount, failCount, testNames

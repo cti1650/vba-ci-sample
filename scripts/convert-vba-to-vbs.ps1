@@ -316,18 +316,13 @@ function Convert-VbaToVbs {
 
     $body = $result -join "`r`n"
 
-    # Enum定数を先頭に追加
-    $enumBlock = ""
-    if ($enumDefinitions.Count -gt 0) {
-        $enumBlock = ($enumDefinitions -join "`r`n") + "`r`n`r`n"
-    }
+    # Enum定数は別ファイル(_enums.vbs)に出力するため、ここでは追加しない
 
     # .cls ファイルは Class で囲む
     if ($IsClass) {
-        # クラスの場合、Enum定数はクラス外に出力
-        return "${enumBlock}Class $className`r`n$body`r`nEnd Class"
+        return "Class $className`r`n$body`r`nEnd Class"
     } else {
-        return "${enumBlock}$body"
+        return $body
     }
 }
 
@@ -364,6 +359,19 @@ if ($allEnums.Count -gt 0) {
         Write-Host "  - ${enumName}: $members"
     }
     Write-Host ""
+
+    # Enum定数を _enums.vbs ファイルに出力（アンダースコアで始まるので最初に読み込まれる）
+    $enumLines = @("' Auto-generated Enum constants")
+    foreach ($enumName in $allEnums.Keys) {
+        foreach ($memberName in $allEnums[$enumName].Keys) {
+            $value = $allEnums[$enumName][$memberName]
+            $enumLines += "${enumName}_${memberName} = ${value}"
+        }
+    }
+    $enumContent = $enumLines -join "`r`n"
+    $enumPath = Join-Path $OutputDir "_enums.vbs"
+    [System.IO.File]::WriteAllText($enumPath, $enumContent, [System.Text.UTF8Encoding]::new($false))
+    Write-Host "[GENERATED] _enums.vbs"
 }
 
 # Step 2: 全ディレクトリのファイルを変換
