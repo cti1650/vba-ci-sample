@@ -18,8 +18,3 @@ Public Sub Test_Subtract()
     Utils.Fail 1002, "Subtract(10,4) expected 6"
   End If
 End Sub
-
-' 構文エラーテスト用（CI動作確認用）
-Public Sub Test_SyntaxError(
-  ' ← 括弧が閉じていない構文エラー
-End Sub
