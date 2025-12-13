@@ -49,6 +49,35 @@ function Convert-VbaToVbs {
     $skipEnumBlock = $false
     $skipTypeBlock = $false
 
+    # Enum定義を収集して定数に変換
+    $enumDefinitions = @()
+    $currentEnumName = ""
+    $inEnum = $false
+
+    foreach ($line in $lines) {
+        if ($line -match "^\s*(Public\s+|Private\s+)?Enum\s+(\w+)") {
+            $inEnum = $true
+            $currentEnumName = $matches[2]
+            continue
+        }
+        if ($inEnum) {
+            if ($line -match "^\s*End\s+Enum") {
+                $inEnum = $false
+                $currentEnumName = ""
+                continue
+            }
+            # Enumメンバーを解析: MemberName = Value または MemberName
+            if ($line -match "^\s*(\w+)\s*=\s*(\d+)") {
+                $enumDefinitions += "Const ${currentEnumName}_$($matches[1]) = $($matches[2])"
+            }
+            elseif ($line -match "^\s*(\w+)\s*$") {
+                # 値なしの場合はスキップ（自動採番は複雑なので）
+            }
+        }
+    }
+
+    # 再度ループして変換
+    $inEnum = $false
     foreach ($line in $lines) {
         # VERSION 1.0 CLASS ヘッダーブロックをスキップ
         if ($line -match "^VERSION\s+\d+\.\d+\s+CLASS") {
@@ -164,8 +193,35 @@ function Convert-VbaToVbs {
         # Const 宣言の型も削除: Const X As Long = 1 → Const X = 1
         $converted = $converted -replace "(\bConst\s+\w+)\s+As\s+\w+", '$1'
 
-        # New Collection, New Dictionary などの型付きNew → New のまま（VBSでも動く）
-        # ただし、VBS では CreateObject を使う方が一般的
+        # New Collection → CreateCollection() (vba-compat.vbs のモック使用)
+        $converted = $converted -replace "\bNew\s+Collection\b", "CreateCollection()"
+
+        # ThisWorkbook.path → GetScriptDir() (vba-compat.vbs で提供)
+        $converted = $converted -replace "\bThisWorkbook\.path\b", "GetScriptDir()"
+        $converted = $converted -replace "\bThisWorkbook\.Path\b", "GetScriptDir()"
+
+        # Left$, Mid$, Right$, Replace$, Trim$, LTrim$, RTrim$, UCase$, LCase$, Space$, String$ → $ なし版
+        $converted = $converted -replace "\bLeft\$\(", "Left("
+        $converted = $converted -replace "\bMid\$\(", "Mid("
+        $converted = $converted -replace "\bRight\$\(", "Right("
+        $converted = $converted -replace "\bReplace\$\(", "Replace("
+        $converted = $converted -replace "\bTrim\$\(", "Trim("
+        $converted = $converted -replace "\bLTrim\$\(", "LTrim("
+        $converted = $converted -replace "\bRTrim\$\(", "RTrim("
+        $converted = $converted -replace "\bUCase\$\(", "UCase("
+        $converted = $converted -replace "\bLCase\$\(", "LCase("
+        $converted = $converted -replace "\bSpace\$\(", "Space("
+        $converted = $converted -replace "\bString\$\(", "String("
+
+        # EnumName.Member → EnumName_Member に変換
+        # 収集したEnum名を使って変換
+        foreach ($enumDef in $enumDefinitions) {
+            if ($enumDef -match "Const\s+(\w+)_(\w+)\s*=") {
+                $enumName = $matches[1]
+                $memberName = $matches[2]
+                $converted = $converted -replace "\b${enumName}\.${memberName}\b", "${enumName}_${memberName}"
+            }
+        }
 
         $result += $converted
     }
@@ -182,11 +238,18 @@ function Convert-VbaToVbs {
 
     $body = $result -join "`r`n"
 
+    # Enum定数を先頭に追加
+    $enumBlock = ""
+    if ($enumDefinitions.Count -gt 0) {
+        $enumBlock = ($enumDefinitions -join "`r`n") + "`r`n`r`n"
+    }
+
     # .cls ファイルは Class で囲む
     if ($IsClass) {
-        return "Class $className`r`n$body`r`nEnd Class"
+        # クラスの場合、Enum定数はクラス外に出力
+        return "${enumBlock}Class $className`r`n$body`r`nEnd Class"
     } else {
-        return $body
+        return "${enumBlock}$body"
     }
 }
 

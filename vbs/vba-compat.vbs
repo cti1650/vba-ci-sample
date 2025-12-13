@@ -101,6 +101,11 @@ End Function
 Dim fso_
 Set fso_ = CreateObject("Scripting.FileSystemObject")
 
+' ThisWorkbook.Path の代替
+Function GetScriptDir()
+    GetScriptDir = fso_.GetParentFolderName(WScript.ScriptFullName)
+End Function
+
 ' VBA互換のファイル書き込み
 Sub WriteTextFile(ByVal path, ByVal text)
     Dim f
