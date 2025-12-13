@@ -15,8 +15,8 @@
     - DefInt/DefLng 等を削除
     - On Error GoTo ラベル を On Error Resume Next に変換
 
-.PARAMETER InputDir
-    入力ディレクトリ (VBAファイルがあるディレクトリ)
+.PARAMETER InputDirs
+    入力ディレクトリ (VBAファイルがあるディレクトリ、複数指定可能)
 
 .PARAMETER OutputDir
     出力ディレクトリ (VBSファイルを出力するディレクトリ)
@@ -24,7 +24,7 @@
 
 param(
     [Parameter(Mandatory=$true)]
-    [string]$InputDir,
+    [string[]]$InputDirs,
 
     [Parameter(Mandatory=$true)]
     [string]$OutputDir
@@ -33,11 +33,65 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+# 全ファイルからEnum定義を収集する関数
+function Collect-EnumDefinitions {
+    param(
+        [string]$InputDir
+    )
+
+    $allEnums = @{}  # EnumName -> @{ MemberName -> Value }
+    $files = Get-ChildItem -Path $InputDir -Include "*.bas", "*.cls" -Recurse
+
+    foreach ($file in $files) {
+        $content = Get-Content -Path $file.FullName -Raw -Encoding UTF8
+        $lines = $content -split "`r?`n"
+
+        $currentEnumName = ""
+        $inEnum = $false
+        $autoValue = 0
+
+        foreach ($line in $lines) {
+            if ($line -match "^\s*(Public\s+|Private\s+)?Enum\s+(\w+)") {
+                $inEnum = $true
+                $currentEnumName = $matches[2]
+                $autoValue = 0
+                if (-not $allEnums.ContainsKey($currentEnumName)) {
+                    $allEnums[$currentEnumName] = @{}
+                }
+                continue
+            }
+            if ($inEnum) {
+                if ($line -match "^\s*End\s+Enum") {
+                    $inEnum = $false
+                    $currentEnumName = ""
+                    continue
+                }
+                # Enumメンバーを解析: MemberName = Value
+                if ($line -match "^\s*(\w+)\s*=\s*(-?\d+)") {
+                    $memberName = $matches[1]
+                    $value = [int]$matches[2]
+                    $allEnums[$currentEnumName][$memberName] = $value
+                    $autoValue = $value + 1
+                }
+                # 値なしの場合: 自動採番
+                elseif ($line -match "^\s*(\w+)\s*$" -and $matches[1] -ne "") {
+                    $memberName = $matches[1]
+                    $allEnums[$currentEnumName][$memberName] = $autoValue
+                    $autoValue++
+                }
+            }
+        }
+    }
+
+    return $allEnums
+}
+
 function Convert-VbaToVbs {
     param(
         [string]$Content,
         [string]$FileName,
-        [bool]$IsClass
+        [bool]$IsClass,
+        [hashtable]$AllEnums = @{}
     )
 
     $lines = $Content -split "`r?`n"
@@ -178,6 +232,9 @@ function Convert-VbaToVbs {
             $converted = $converted -replace "On\s+Error\s+GoTo\s+\w+", "On Error Resume Next"
         }
 
+        # Optional引数のデフォルト値付き型宣言を削除: Optional ByRef key As String = "" → Optional ByRef key = ""
+        $converted = $converted -replace "(\bOptional\s+(?:ByVal\s+|ByRef\s+)?\w+)\s+As\s+\w+(\s*=)", '$1$2'
+
         # 型宣言を削除: As Long, As String, As Boolean, As Variant, As Integer, As Double, As Object, As Collection 等
         $converted = $converted -replace "\s+As\s+\w+(?=\s*[,\)\r\n]|$)", ""
 
@@ -214,11 +271,18 @@ function Convert-VbaToVbs {
         $converted = $converted -replace "\bString\$\(", "String("
 
         # EnumName.Member → EnumName_Member に変換
-        # 収集したEnum名を使って変換
+        # ファイル内のEnum定義を使って変換
         foreach ($enumDef in $enumDefinitions) {
             if ($enumDef -match "Const\s+(\w+)_(\w+)\s*=") {
                 $enumName = $matches[1]
                 $memberName = $matches[2]
+                $converted = $converted -replace "\b${enumName}\.${memberName}\b", "${enumName}_${memberName}"
+            }
+        }
+
+        # 全ファイルから収集したEnum定義を使って変換（他ファイルで定義されたEnum参照用）
+        foreach ($enumName in $AllEnums.Keys) {
+            foreach ($memberName in $AllEnums[$enumName].Keys) {
                 $converted = $converted -replace "\b${enumName}\.${memberName}\b", "${enumName}_${memberName}"
             }
         }
@@ -258,30 +322,62 @@ if (-not (Test-Path $OutputDir)) {
     New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 }
 
-# .bas と .cls ファイルを処理
-$files = Get-ChildItem -Path $InputDir -Include "*.bas", "*.cls" -Recurse
-
 Write-Host "========================================="
 Write-Host "VBA to VBS Converter"
 Write-Host "========================================="
 Write-Host ""
 
+# Step 1: 全ディレクトリからEnum定義を収集
+$allEnums = @{}
+foreach ($dir in $InputDirs) {
+    if (Test-Path $dir) {
+        $dirEnums = Collect-EnumDefinitions -InputDir $dir
+        foreach ($enumName in $dirEnums.Keys) {
+            if (-not $allEnums.ContainsKey($enumName)) {
+                $allEnums[$enumName] = @{}
+            }
+            foreach ($memberName in $dirEnums[$enumName].Keys) {
+                $allEnums[$enumName][$memberName] = $dirEnums[$enumName][$memberName]
+            }
+        }
+    }
+}
+
+if ($allEnums.Count -gt 0) {
+    Write-Host "[INFO] Collected Enums:"
+    foreach ($enumName in $allEnums.Keys) {
+        $members = ($allEnums[$enumName].Keys -join ", ")
+        Write-Host "  - ${enumName}: $members"
+    }
+    Write-Host ""
+}
+
+# Step 2: 全ディレクトリのファイルを変換
 $convertedCount = 0
 
-foreach ($file in $files) {
-    $content = Get-Content -Path $file.FullName -Raw -Encoding UTF8
-    $isClass = $file.Extension -eq ".cls"
-    $converted = Convert-VbaToVbs -Content $content -FileName $file.Name -IsClass $isClass
+foreach ($dir in $InputDirs) {
+    if (-not (Test-Path $dir)) {
+        Write-Host "[WARN] Directory not found: $dir"
+        continue
+    }
 
-    # 出力ファイル名: .bas/.cls → .vbs
-    $outputName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name) + ".vbs"
-    $outputPath = Join-Path $OutputDir $outputName
+    $files = Get-ChildItem -Path $dir -Include "*.bas", "*.cls" -Recurse
 
-    # BOMなしUTF-8で出力
-    [System.IO.File]::WriteAllText($outputPath, $converted, [System.Text.UTF8Encoding]::new($false))
+    foreach ($file in $files) {
+        $content = Get-Content -Path $file.FullName -Raw -Encoding UTF8
+        $isClass = $file.Extension -eq ".cls"
+        $converted = Convert-VbaToVbs -Content $content -FileName $file.Name -IsClass $isClass -AllEnums $allEnums
 
-    Write-Host "[CONVERTED] $($file.Name) -> $outputName"
-    $convertedCount++
+        # 出力ファイル名: .bas/.cls → .vbs
+        $outputName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name) + ".vbs"
+        $outputPath = Join-Path $OutputDir $outputName
+
+        # BOMなしUTF-8で出力
+        [System.IO.File]::WriteAllText($outputPath, $converted, [System.Text.UTF8Encoding]::new($false))
+
+        Write-Host "[CONVERTED] $($file.Name) -> $outputName"
+        $convertedCount++
+    }
 }
 
 Write-Host ""
