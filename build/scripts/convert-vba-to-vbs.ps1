@@ -346,7 +346,17 @@ function Convert-VbaToVbs {
 
     $body = $result -join "`r`n"
 
-    # Enum定数は別ファイル(_enums.vbs)に出力するため、ここでは追加しない
+    # Enum定数は別ファイル(_enums.vbs)に出力
+    # ただし、Class内ではグローバル変数にアクセスできないため、Class内ではリテラル値に置換する
+    if ($IsClass) {
+        foreach ($enumName in $AllEnums.Keys) {
+            foreach ($memberName in $AllEnums[$enumName].Keys) {
+                $value = $AllEnums[$enumName][$memberName]
+                # EnumName_Member → リテラル値に置換
+                $body = $body -replace "\b${enumName}_${memberName}\b", $value
+            }
+        }
+    }
 
     # .cls ファイルは Class で囲む
     if ($IsClass) {
