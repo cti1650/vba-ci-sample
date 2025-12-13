@@ -19,9 +19,8 @@ jobs:
       - name: Convert VBA to VBS
         shell: pwsh
         run: |
-          # src, test の両方を変換
-          ./scripts/convert-vba-to-vbs.ps1 -InputDir "./vba/src" -OutputDir "./vbs/generated"
-          ./scripts/convert-vba-to-vbs.ps1 -InputDir "./vba/test" -OutputDir "./vbs/generated"
+          # src, test の両方を一度に変換（Enumを先に収集してから変換）
+          ./scripts/convert-vba-to-vbs.ps1 -InputDirs "./vba/src", "./vba/test" -OutputDir "./vbs/generated"
 
       - name: Debug - Show generated files
         shell: pwsh

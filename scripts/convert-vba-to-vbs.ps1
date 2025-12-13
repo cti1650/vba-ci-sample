@@ -283,7 +283,18 @@ function Convert-VbaToVbs {
         # 全ファイルから収集したEnum定義を使って変換（他ファイルで定義されたEnum参照用）
         foreach ($enumName in $AllEnums.Keys) {
             foreach ($memberName in $AllEnums[$enumName].Keys) {
+                # EnumName.Member → EnumName_Member
                 $converted = $converted -replace "\b${enumName}\.${memberName}\b", "${enumName}_${memberName}"
+            }
+        }
+
+        # Enumメンバー名だけの参照を変換（VBAでは同じEnum内ならEnum名を省略可能）
+        # 例: Me.SetType = dictionary → Me.SetType = GlobDataType_dictionary
+        # 代入の右辺 (= Member) パターンを検出
+        foreach ($enumName in $AllEnums.Keys) {
+            foreach ($memberName in $AllEnums[$enumName].Keys) {
+                # = MemberName (代入の右辺でメンバー名のみ)
+                $converted = $converted -replace "=\s*\b${memberName}\b(?!\s*[.(])", "= ${enumName}_${memberName}"
             }
         }
 
