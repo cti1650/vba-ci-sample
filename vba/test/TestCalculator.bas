@@ -7,6 +7,8 @@ Public Sub Test_Add()
 
   If c.Add(1, 2) <> 3 Then
     Utils.Fail 1001, "Add(1,2) expected 3"
+  Else IF c.Add(1, 1) = 2 Then
+    Utils.Fail 1003, "Add(1,1) expected 2"
   End If
 End Sub
 
