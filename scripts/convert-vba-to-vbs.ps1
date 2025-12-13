@@ -132,7 +132,9 @@ function Convert-VbaToVbs {
         # 例: Private WithEvents obj As Object → Private obj
         $converted = $line -replace "\bWithEvents\s+", ""
 
-        # Debug.Print はそのまま (vba-compat.vbs でモック提供)
+        # Debug.Print → DebugPrint (vba-compat.vbs でモック提供)
+        # VBSでは Print が予約語のため、関数呼び出しに変換
+        $converted = $converted -replace "\bDebug\.Print\b", "DebugPrint"
 
         # Static 変数 → Dim (VBSにはStaticがない)
         $converted = $converted -replace "^\s*Static\s+", "Dim "

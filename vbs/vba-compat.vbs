@@ -4,25 +4,11 @@ Option Explicit
 ' ============================================
 ' Debug オブジェクトのモック
 ' ============================================
-Class DebugClass
-    Public Sub Print(ByVal msg)
-        WScript.Echo msg
-    End Sub
-
-    ' 複数引数対応 (VBAのDebug.Print a, b, c 相当)
-    Public Sub PrintMulti(ParamArray args())
-        Dim i, output
-        output = ""
-        For i = 0 To UBound(args)
-            If i > 0 Then output = output & " "
-            output = output & CStr(args(i))
-        Next
-        WScript.Echo output
-    End Sub
-End Class
-
-Dim Debug
-Set Debug = New DebugClass
+' VBSでは Print が予約語のため、Debug.Print は直接モックできない
+' 代わりに変換スクリプトで Debug.Print を DebugPrint に変換する
+Sub DebugPrint(ByVal msg)
+    WScript.Echo msg
+End Sub
 
 ' ============================================
 ' VBA関数のモック
@@ -41,17 +27,15 @@ End Sub
 ' ============================================
 ' Collection クラス (VBSにはないのでモック)
 ' ============================================
-Class Collection
+Class CollectionClass
     Private items_
-    Private keys_
 
     Private Sub Class_Initialize()
         Set items_ = CreateObject("Scripting.Dictionary")
-        Set keys_ = CreateObject("Scripting.Dictionary")
     End Sub
 
     Public Sub Add(ByVal item, ByVal key)
-        If IsMissing(key) Or key = "" Then
+        If key = "" Then
             key = "item_" & (items_.Count + 1)
         End If
         items_.Add key, item
@@ -106,6 +90,11 @@ Class Collection
     End Sub
 End Class
 
+' Collection のファクトリ関数
+Function CreateCollection()
+    Set CreateCollection = New CollectionClass
+End Function
+
 ' ============================================
 ' FileSystemObject ヘルパー (よく使う関数)
 ' ============================================
@@ -140,13 +129,6 @@ End Function
 ' CLngPtr - VBAのポインタ型、VBSではCLngにフォールバック
 Function CLngPtr(ByVal value)
     CLngPtr = CLng(value)
-End Function
-
-' ============================================
-' IsMissing - VBSでも使えるがOptional引数がないので常にFalse
-' ============================================
-Function IsMissing(ByVal arg)
-    IsMissing = False
 End Function
 
 ' ============================================
