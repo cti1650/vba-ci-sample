@@ -8,7 +8,16 @@ scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
 genDir = fso.BuildPath(scriptDir, "generated")
 compatPath = fso.BuildPath(scriptDir, "vba-compat.vbs")
 
-' VBA互換レイヤーを読み込み
+' GetScriptDir()をグローバルスコープで定義
+' ExecuteGlobalで読み込んだコードから呼び出せるように、ここで直接定義する
+' scriptDirの値を埋め込んだ関数を動的に生成
+Dim getScriptDirCode
+getScriptDirCode = "Function GetScriptDir()" & vbCrLf & _
+                   "    GetScriptDir = """ & scriptDir & """" & vbCrLf & _
+                   "End Function"
+ExecuteGlobal getScriptDirCode
+
+' VBA互換レイヤーを読み込み（GetScriptDir以外の関数）
 If fso.FileExists(compatPath) Then
     ExecuteGlobal fso.OpenTextFile(compatPath).ReadAll
 End If
