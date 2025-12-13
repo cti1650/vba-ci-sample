@@ -74,10 +74,11 @@ WScript.Echo "========================================="
 WScript.Echo ""
 
 ' 各テストを実行
+' ExecuteGlobalを使用してグローバルスコープで実行（GetScriptDir等のグローバル関数にアクセスするため）
 Dim testName
 For Each testName In testNames.Keys
     On Error Resume Next
-    Execute "Call " & testName & "()"
+    ExecuteGlobal "Call " & testName & "()"
     If Err.Number <> 0 Then
         WScript.Echo "[FAIL] " & testName & ": " & Err.Description
         failCount = failCount + 1
