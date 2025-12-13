@@ -237,11 +237,13 @@ function Convert-VbaToVbs {
         # Optional引数のデフォルト値付き型宣言を削除: Optional ByRef key As String = "" → Optional ByRef key = ""
         $converted = $converted -replace "(\bOptional\s+(?:ByVal\s+|ByRef\s+)?\w+)\s+As\s+\w+(\s*=)", '$1$2'
 
-        # VBSではOptional ByRef/ByValにデフォルト値を付けられないので、ByRef/ByValを削除
-        # Optional ByRef key = "" → Optional key
-        # Optional ByVal key = "" → Optional key
-        $converted = $converted -replace "\bOptional\s+ByRef\s+(\w+)\s*=", 'Optional $1 ='
-        $converted = $converted -replace "\bOptional\s+ByVal\s+(\w+)\s*=", 'Optional $1 ='
+        # VBSではOptionalパラメータにデフォルト値を指定できない
+        # Optional ByRef key = "" → key (Optionalとデフォルト値を削除)
+        # Optional ByVal key = "" → ByVal key
+        # Optional key = "" → key
+        $converted = $converted -replace "\bOptional\s+ByRef\s+(\w+)\s*=\s*[^,\)]+", '$1'
+        $converted = $converted -replace "\bOptional\s+ByVal\s+(\w+)\s*=\s*[^,\)]+", 'ByVal $1'
+        $converted = $converted -replace "\bOptional\s+(\w+)\s*=\s*[^,\)]+", '$1'
 
         # 型宣言を削除: As Long, As String, As Boolean, As Variant, As Integer, As Double, As Object, As Collection 等
         $converted = $converted -replace "\s+As\s+\w+(?=\s*[,\)\r\n]|$)", ""
@@ -261,11 +263,13 @@ function Convert-VbaToVbs {
         # New Collection → CreateCollection() (vba-compat.vbs のモック使用)
         $converted = $converted -replace "\bNew\s+Collection\b", "CreateCollection()"
 
-        # With New ClassName → Dim tempObj : Set tempObj = New ClassName : With tempObj
+        # With New ClassName → 複数行に分けて変換
         # VBSでは With New 構文がサポートされていない
-        if ($converted -match "^\s*With\s+New\s+(\w+)") {
-            $tempClassName = $matches[1]
-            $converted = $converted -replace "^\s*With\s+New\s+\w+", "Dim withTemp_$tempClassName : Set withTemp_$tempClassName = New $tempClassName : With withTemp_$tempClassName"
+        # また、: で複数ステートメントを繋ぐとWithで問題が起きる場合があるため、改行で分ける
+        if ($converted -match "^(\s*)With\s+New\s+(\w+)") {
+            $indent = $matches[1]
+            $tempClassName = $matches[2]
+            $converted = "${indent}Dim withTemp_$tempClassName`r`n${indent}Set withTemp_$tempClassName = New $tempClassName`r`n${indent}With withTemp_$tempClassName"
         }
 
         # ThisWorkbook.path → GetScriptDir() (vba-compat.vbs で提供)
