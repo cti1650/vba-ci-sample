@@ -1,0 +1,21 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Excel / Office
+*.xlsb
+*.xlsm
+*.xlsx
+*.xlam
+*.tmp
+~$*
+
+# Logs / artifacts
+C:\temp\
+*.log
+
+# VS Code
+.vscode/
+
+# PowerShell
+*.ps1xml
