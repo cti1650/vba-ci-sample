@@ -23,6 +23,15 @@ jobs:
           ./scripts/convert-vba-to-vbs.ps1 -InputDir "./vba/src" -OutputDir "./vbs/generated"
           ./scripts/convert-vba-to-vbs.ps1 -InputDir "./vba/test" -OutputDir "./vbs/generated"
 
+      - name: Debug - Show generated files
+        shell: pwsh
+        run: |
+          Get-ChildItem ./vbs/generated -Recurse | ForEach-Object {
+            Write-Host "===== $($_.Name) ====="
+            Get-Content $_.FullName
+            Write-Host ""
+          }
+
       - name: Run VBS tests
         shell: cmd
         run: cscript //nologo vbs/run-tests.vbs
