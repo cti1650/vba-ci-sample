@@ -121,9 +121,10 @@ function Convert-VbaToVbs {
                 continue
             }
             # Enumメンバーを解析: MemberName = Value または MemberName
-            # ExecuteGlobalではConstが使えないため、変数として定義
+            # ExecuteGlobalではConstが使えないため、Dim宣言+代入で定義
             if ($line -match "^\s*(\w+)\s*=\s*(\d+)") {
-                $enumDefinitions += "${currentEnumName}_$($matches[1]) = $($matches[2])"
+                $varName = "${currentEnumName}_$($matches[1])"
+                $enumDefinitions += "Dim ${varName} : ${varName} = $($matches[2])"
             }
             elseif ($line -match "^\s*(\w+)\s*$") {
                 # 値なしの場合はスキップ（自動採番は複雑なので）
@@ -274,7 +275,8 @@ function Convert-VbaToVbs {
         # EnumName.Member → EnumName_Member に変換
         # ファイル内のEnum定義を使って変換
         foreach ($enumDef in $enumDefinitions) {
-            if ($enumDef -match "^(\w+)_(\w+)\s*=") {
+            # "Dim EnumName_Member : EnumName_Member = Value" からEnum名とメンバー名を抽出
+            if ($enumDef -match "Dim\s+(\w+)_(\w+)\s*:") {
                 $enumName = $matches[1]
                 $memberName = $matches[2]
                 $converted = $converted -replace "\b${enumName}\.${memberName}\b", "${enumName}_${memberName}"
