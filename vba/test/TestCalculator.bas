@@ -18,3 +18,8 @@ Public Sub Test_Subtract()
     Utils.Fail 1002, "Subtract(10,4) expected 6"
   End If
 End Sub
+
+' 意図的に失敗するテスト（CI動作確認用）
+Public Sub Test_ShouldFail()
+  Utils.Fail 9999, "This test is expected to fail"
+End Sub
