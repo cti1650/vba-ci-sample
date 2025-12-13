@@ -21,4 +21,4 @@ C:\temp\
 *.ps1xml
 
 # Generated VBS files (auto-converted from VBA)
-vbs/generated/
+build/vbs/generated/

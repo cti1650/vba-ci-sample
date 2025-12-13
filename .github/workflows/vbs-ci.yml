@@ -20,12 +20,12 @@ jobs:
         shell: pwsh
         run: |
           # src, test の両方を一度に変換（Enumを先に収集してから変換）
-          ./scripts/convert-vba-to-vbs.ps1 -InputDirs "./vba/src", "./vba/test" -OutputDir "./vbs/generated"
+          ./build/scripts/convert-vba-to-vbs.ps1 -InputDirs "./src", "./test" -OutputDir "./build/vbs/generated"
 
       - name: Debug - Show generated files
         shell: pwsh
         run: |
-          Get-ChildItem ./vbs/generated -Recurse | ForEach-Object {
+          Get-ChildItem ./build/vbs/generated -Recurse | ForEach-Object {
             Write-Host "===== $($_.Name) ====="
             Get-Content $_.FullName
             Write-Host ""
@@ -34,7 +34,7 @@ jobs:
       - name: Run VBS tests
         shell: pwsh
         run: |
-          $output = cscript //nologo vbs/run-tests.vbs 2>&1
+          $output = cscript //nologo build/vbs/run-tests.vbs 2>&1
           $exitCode = $LASTEXITCODE
           $output | ForEach-Object { Write-Host $_ }
 
