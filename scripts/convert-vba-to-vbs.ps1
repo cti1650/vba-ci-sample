@@ -237,6 +237,12 @@ function Convert-VbaToVbs {
         # Optional引数のデフォルト値付き型宣言を削除: Optional ByRef key As String = "" → Optional ByRef key = ""
         $converted = $converted -replace "(\bOptional\s+(?:ByVal\s+|ByRef\s+)?\w+)\s+As\s+\w+(\s*=)", '$1$2'
 
+        # VBSではOptional ByRef/ByValにデフォルト値を付けられないので、ByRef/ByValを削除
+        # Optional ByRef key = "" → Optional key
+        # Optional ByVal key = "" → Optional key
+        $converted = $converted -replace "\bOptional\s+ByRef\s+(\w+)\s*=", 'Optional $1 ='
+        $converted = $converted -replace "\bOptional\s+ByVal\s+(\w+)\s*=", 'Optional $1 ='
+
         # 型宣言を削除: As Long, As String, As Boolean, As Variant, As Integer, As Double, As Object, As Collection 等
         $converted = $converted -replace "\s+As\s+\w+(?=\s*[,\)\r\n]|$)", ""
 
@@ -254,6 +260,13 @@ function Convert-VbaToVbs {
 
         # New Collection → CreateCollection() (vba-compat.vbs のモック使用)
         $converted = $converted -replace "\bNew\s+Collection\b", "CreateCollection()"
+
+        # With New ClassName → Dim tempObj : Set tempObj = New ClassName : With tempObj
+        # VBSでは With New 構文がサポートされていない
+        if ($converted -match "^\s*With\s+New\s+(\w+)") {
+            $tempClassName = $matches[1]
+            $converted = $converted -replace "^\s*With\s+New\s+(\w+)", "Dim withTemp_$1 : Set withTemp_$1 = New $1 : With withTemp_$1"
+        }
 
         # ThisWorkbook.path → GetScriptDir() (vba-compat.vbs で提供)
         $converted = $converted -replace "\bThisWorkbook\.path\b", "GetScriptDir()"
