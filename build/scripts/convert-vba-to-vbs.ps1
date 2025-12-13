@@ -260,8 +260,14 @@ function Convert-VbaToVbs {
         # Const 宣言の型も削除: Const X As Long = 1 → Const X = 1
         $converted = $converted -replace "(\bConst\s+\w+)\s+As\s+\w+", '$1'
 
-        # New Collection → CreateCollection() (vba-compat.vbs のモック使用)
-        $converted = $converted -replace "\bNew\s+Collection\b", "CreateCollection()"
+        # New Collection → VBSでの代替
+        # Class内ではグローバル関数を呼べないため、直接Dictionaryを使う（Collectionモックは内部でDictionaryを使用）
+        if ($IsClass) {
+            # Class内ではDictionaryで代替（CollectionモックはFor Eachが使えないため）
+            $converted = $converted -replace "\bNew\s+Collection\b", "CreateObject(""Scripting.Dictionary"")"
+        } else {
+            $converted = $converted -replace "\bNew\s+Collection\b", "CreateCollection()"
+        }
 
         # With New ClassName → 複数行に分けて変換
         # VBSでは With New 構文がサポートされていない
