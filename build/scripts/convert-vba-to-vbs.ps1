@@ -273,8 +273,15 @@ function Convert-VbaToVbs {
         }
 
         # ThisWorkbook.path → GetScriptDir() (vba-compat.vbs で提供)
-        $converted = $converted -replace "\bThisWorkbook\.path\b", "GetScriptDir()"
-        $converted = $converted -replace "\bThisWorkbook\.Path\b", "GetScriptDir()"
+        # ただし、Class内ではグローバル関数を呼べないため、インライン展開する
+        if ($IsClass) {
+            # Class内では直接FSO経由でパスを取得
+            $converted = $converted -replace "\bThisWorkbook\.path\b", "CreateObject(""Scripting.FileSystemObject"").GetParentFolderName(WScript.ScriptFullName)"
+            $converted = $converted -replace "\bThisWorkbook\.Path\b", "CreateObject(""Scripting.FileSystemObject"").GetParentFolderName(WScript.ScriptFullName)"
+        } else {
+            $converted = $converted -replace "\bThisWorkbook\.path\b", "GetScriptDir()"
+            $converted = $converted -replace "\bThisWorkbook\.Path\b", "GetScriptDir()"
+        }
 
         # Left$, Mid$, Right$, Replace$, Trim$, LTrim$, RTrim$, UCase$, LCase$, Space$, String$ → $ なし版
         $converted = $converted -replace "\bLeft\$\(", "Left("
