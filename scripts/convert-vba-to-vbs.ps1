@@ -8,6 +8,7 @@
     - 型宣言を削除 (As Long, As String, As Variant 等)
     - ByVal/ByRef の型宣言を削除
     - 関数戻り値の型宣言を削除
+    - .cls ファイルは Class ... End Class で囲む
 
 .PARAMETER InputDir
     入力ディレクトリ (VBAファイルがあるディレクトリ)
@@ -30,12 +31,16 @@ $ErrorActionPreference = "Stop"
 function Convert-VbaToVbs {
     param(
         [string]$Content,
-        [string]$FileName
+        [string]$FileName,
+        [bool]$IsClass
     )
 
     $lines = $Content -split "`r?`n"
     $result = @()
     $skipUntilEnd = $false
+    $className = [System.IO.Path]::GetFileNameWithoutExtension($FileName)
+
+    $skipIfBlock = $false
 
     foreach ($line in $lines) {
         # VERSION 1.0 CLASS ヘッダーブロックをスキップ
@@ -55,8 +60,24 @@ function Convert-VbaToVbs {
             continue
         }
 
+        # Option Explicit はクラスの外に出す（後で処理）
+        if ($line -match "^\s*Option\s+Explicit") {
+            continue
+        }
+
+        # #If VBA7 などの条件コンパイルブロックをスキップ
+        if ($line -match "^\s*#If\s+") {
+            $skipIfBlock = $true
+            continue
+        }
+        if ($skipIfBlock) {
+            if ($line -match "^\s*#End\s+If") {
+                $skipIfBlock = $false
+            }
+            continue
+        }
+
         # 型宣言を削除: As Long, As String, As Boolean, As Variant, As Integer, As Double, As Object, As Collection 等
-        # パターン: As <型名> (行末または , または ) の前)
         $converted = $line -replace "\s+As\s+\w+(?=\s*[,\)\r\n]|$)", ""
 
         # 関数の戻り値型を削除: Function Foo() As Long → Function Foo()
@@ -76,7 +97,19 @@ function Convert-VbaToVbs {
         $result = $result[1..($result.Count - 1)]
     }
 
-    return ($result -join "`r`n")
+    # 末尾の空行を削除
+    while ($result.Count -gt 0 -and $result[$result.Count - 1] -match "^\s*$") {
+        $result = $result[0..($result.Count - 2)]
+    }
+
+    $body = $result -join "`r`n"
+
+    # .cls ファイルは Class で囲む
+    if ($IsClass) {
+        return "Class $className`r`n$body`r`nEnd Class"
+    } else {
+        return $body
+    }
 }
 
 # 出力ディレクトリを作成
@@ -96,7 +129,8 @@ $convertedCount = 0
 
 foreach ($file in $files) {
     $content = Get-Content -Path $file.FullName -Raw -Encoding UTF8
-    $converted = Convert-VbaToVbs -Content $content -FileName $file.Name
+    $isClass = $file.Extension -eq ".cls"
+    $converted = Convert-VbaToVbs -Content $content -FileName $file.Name -IsClass $isClass
 
     # 出力ファイル名: .bas/.cls → .vbs
     $outputName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name) + ".vbs"
