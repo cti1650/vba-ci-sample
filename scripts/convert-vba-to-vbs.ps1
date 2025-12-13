@@ -9,6 +9,11 @@
     - ByVal/ByRef の型宣言を削除
     - 関数戻り値の型宣言を削除
     - .cls ファイルは Class ... End Class で囲む
+    - Enum/Type ブロックを削除
+    - Debug.Print を WScript.Echo に変換
+    - Static 変数宣言を Dim に変換
+    - DefInt/DefLng 等を削除
+    - On Error GoTo ラベル を On Error Resume Next に変換
 
 .PARAMETER InputDir
     入力ディレクトリ (VBAファイルがあるディレクトリ)
@@ -41,6 +46,8 @@ function Convert-VbaToVbs {
     $className = [System.IO.Path]::GetFileNameWithoutExtension($FileName)
 
     $skipIfBlock = $false
+    $skipEnumBlock = $false
+    $skipTypeBlock = $false
 
     foreach ($line in $lines) {
         # VERSION 1.0 CLASS ヘッダーブロックをスキップ
@@ -60,8 +67,13 @@ function Convert-VbaToVbs {
             continue
         }
 
-        # Option Explicit はクラスの外に出す（後で処理）
+        # Option Explicit はスキップ（VBSでも使えるが、クラス内では不要）
         if ($line -match "^\s*Option\s+Explicit") {
+            continue
+        }
+
+        # Option Compare, Option Base などもスキップ
+        if ($line -match "^\s*Option\s+(Compare|Base|Private)") {
             continue
         }
 
@@ -77,8 +89,63 @@ function Convert-VbaToVbs {
             continue
         }
 
+        # #Const もスキップ
+        if ($line -match "^\s*#Const\s+") {
+            continue
+        }
+
+        # Enum ブロックをスキップ (VBSにはEnumがない)
+        if ($line -match "^\s*(Public\s+|Private\s+)?Enum\s+") {
+            $skipEnumBlock = $true
+            continue
+        }
+        if ($skipEnumBlock) {
+            if ($line -match "^\s*End\s+Enum") {
+                $skipEnumBlock = $false
+            }
+            continue
+        }
+
+        # Type ブロックをスキップ (VBSにはユーザー定義型がない)
+        if ($line -match "^\s*(Public\s+|Private\s+)?Type\s+") {
+            $skipTypeBlock = $true
+            continue
+        }
+        if ($skipTypeBlock) {
+            if ($line -match "^\s*End\s+Type") {
+                $skipTypeBlock = $false
+            }
+            continue
+        }
+
+        # DefInt, DefLng, DefStr, DefBool, DefByte, DefCur, DefDate, DefDbl, DefSng, DefVar, DefObj をスキップ
+        if ($line -match "^\s*Def(Int|Lng|Str|Bool|Byte|Cur|Date|Dbl|Sng|Var|Obj)\s+") {
+            continue
+        }
+
+        # Implements をスキップ (VBSにはインターフェースがない)
+        if ($line -match "^\s*Implements\s+") {
+            continue
+        }
+
+        # WithEvents をスキップ (VBSにはイベントがない)
+        # 例: Private WithEvents obj As Object → Private obj
+        $converted = $line -replace "\bWithEvents\s+", ""
+
+        # Debug.Print → WScript.Echo
+        $converted = $converted -replace "\bDebug\.Print\b", "WScript.Echo"
+
+        # Static 変数 → Dim (VBSにはStaticがない)
+        $converted = $converted -replace "^\s*Static\s+", "Dim "
+
+        # On Error GoTo ラベル → On Error Resume Next (VBSではラベルジャンプ不可)
+        # ただし On Error GoTo 0 はそのまま使える
+        if ($converted -match "^\s*On\s+Error\s+GoTo\s+(?!0\s*$)") {
+            $converted = $converted -replace "On\s+Error\s+GoTo\s+\w+", "On Error Resume Next"
+        }
+
         # 型宣言を削除: As Long, As String, As Boolean, As Variant, As Integer, As Double, As Object, As Collection 等
-        $converted = $line -replace "\s+As\s+\w+(?=\s*[,\)\r\n]|$)", ""
+        $converted = $converted -replace "\s+As\s+\w+(?=\s*[,\)\r\n]|$)", ""
 
         # 関数の戻り値型を削除: Function Foo() As Long → Function Foo()
         $converted = $converted -replace "\)\s+As\s+\w+\s*$", ")"
@@ -88,6 +155,12 @@ function Convert-VbaToVbs {
 
         # Private/Public 変数宣言の型も削除
         $converted = $converted -replace "(\b(?:Private|Public)\s+\w+)\s+As\s+\w+", '$1'
+
+        # Const 宣言の型も削除: Const X As Long = 1 → Const X = 1
+        $converted = $converted -replace "(\bConst\s+\w+)\s+As\s+\w+", '$1'
+
+        # New Collection, New Dictionary などの型付きNew → New のまま（VBSでも動く）
+        # ただし、VBS では CreateObject を使う方が一般的
 
         $result += $converted
     }
