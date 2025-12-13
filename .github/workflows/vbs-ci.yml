@@ -35,8 +35,14 @@ jobs:
       - name: Run VBS tests
         shell: pwsh
         run: |
-          cscript //nologo vbs/run-tests.vbs
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "::error::VBS tests failed with exit code $LASTEXITCODE"
-            exit $LASTEXITCODE
+          $output = cscript //nologo vbs/run-tests.vbs 2>&1
+          $exitCode = $LASTEXITCODE
+          $output | ForEach-Object { Write-Host $_ }
+
+          # 構文エラーやランタイムエラーをチェック
+          $hasError = $output | Where-Object { $_ -match "error" }
+
+          if ($exitCode -ne 0 -or $hasError) {
+            Write-Host "::error::VBS tests failed"
+            exit 1
           }
