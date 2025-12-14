@@ -231,7 +231,8 @@ Function Compat_FolderExists(ByVal path)
 End Function
 
 Sub UtilsFail(ByVal code, ByVal message)
-    Err.Raise code, "VBA_TEST", message
+    WScript.Echo "ASSERTION FAILED (" & code & "): " & message
+        WScript.Quit 1
 End Sub
 
 Sub UtilsWriteTextFile(ByVal path, ByVal text)
@@ -242,11 +243,17 @@ End Sub
 ' Assertion Functions
 ' ============================================
 Sub Assert(ByVal condition, ByVal message)
-    If Not condition Then Err.Raise 9999, "Assert", "Assertion failed: " & message
+    If Not condition Then
+            WScript.Echo "ASSERTION FAILED: " & message
+            WScript.Quit 1
+        End If
 End Sub
 
 Sub AssertEqual(ByVal expected, ByVal actual, ByVal message)
-    If expected <> actual Then Err.Raise 9999, "AssertEqual", message & " - Expected: " & CStr(expected) & ", Actual: " & CStr(actual)
+    If expected <> actual Then
+            WScript.Echo "ASSERTION FAILED: " & message & " - Expected: " & CStr(expected) & ", Actual: " & CStr(actual)
+            WScript.Quit 1
+        End If
 End Sub
 
 Sub AssertTrue(ByVal condition, ByVal message)
@@ -258,11 +265,17 @@ Sub AssertFalse(ByVal condition, ByVal message)
 End Sub
 
 Sub AssertNothing(ByVal obj, ByVal message)
-    If Not obj Is Nothing Then Err.Raise 9999, "AssertNothing", message & " - Object is not Nothing"
+    If Not obj Is Nothing Then
+            WScript.Echo "ASSERTION FAILED: " & message & " - Object is not Nothing"
+            WScript.Quit 1
+        End If
 End Sub
 
 Sub AssertNotNothing(ByVal obj, ByVal message)
-    If obj Is Nothing Then Err.Raise 9999, "AssertNotNothing", message & " - Object is Nothing"
+    If obj Is Nothing Then
+            WScript.Echo "ASSERTION FAILED: " & message & " - Object is Nothing"
+            WScript.Quit 1
+        End If
 End Sub
 
 ' ============================================
@@ -490,64 +503,6 @@ End Function
 ' ============================================
 ' VBA Constants
 ' ============================================
-Const vbObjectError = -2147221504
-Const vbNormal = 0
-Const vbReadOnly = 1
-Const vbHidden = 2
-Const vbSystem = 4
-Const vbVolume = 8
-Const vbDirectory = 16
-Const vbArchive = 32
-Const vbBinaryCompare = 0
-Const vbTextCompare = 1
-Const vbSunday = 1
-Const vbMonday = 2
-Const vbTuesday = 3
-Const vbWednesday = 4
-Const vbThursday = 5
-Const vbFriday = 6
-Const vbSaturday = 7
-Const vbUseSystem = 0
-Const vbFirstJan1 = 1
-Const vbFirstFourDays = 2
-Const vbFirstFullWeek = 3
-Const vbEmpty = 0
-Const vbNull = 1
-Const vbInteger = 2
-Const vbLong = 3
-Const vbSingle = 4
-Const vbDouble = 5
-Const vbCurrency = 6
-Const vbDate = 7
-Const vbString = 8
-Const vbObject = 9
-Const vbError = 10
-Const vbBoolean = 11
-Const vbVariant = 12
-Const vbDataObject = 13
-Const vbDecimal = 14
-Const vbByte = 17
-Const vbArray = 8192
-Const vbOKOnly = 0
-Const vbOKCancel = 1
-Const vbAbortRetryIgnore = 2
-Const vbYesNoCancel = 3
-Const vbYesNo = 4
-Const vbRetryCancel = 5
-Const vbCritical = 16
-Const vbQuestion = 32
-Const vbExclamation = 48
-Const vbInformation = 64
-Const vbDefaultButton1 = 0
-Const vbDefaultButton2 = 256
-Const vbDefaultButton3 = 512
-Const vbOK = 1
-Const vbCancel = 2
-Const vbAbort = 3
-Const vbRetry = 4
-Const vbIgnore = 5
-Const vbYes = 6
-Const vbNo = 7
 Const CSIDL_DESKTOP = 0
 Const CSIDL_INTERNET = 1
 Const CSIDL_PROGRAMS = 2

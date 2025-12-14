@@ -122,7 +122,6 @@ Public Function Request(ByVal method As String, ByVal URL As String, Optional By
         lastResponseText_ = ""
         Request = ""
         Set http_ = Nothing
-        On Error GoTo 0
         Exit Function
     End If
 
@@ -133,7 +132,6 @@ Public Function Request(ByVal method As String, ByVal URL As String, Optional By
     Request = lastResponseText_
 
     Set http_ = Nothing
-    On Error GoTo 0
 End Function
 
 ' ===========================================
@@ -218,7 +216,6 @@ Private Function CreateHttpRequest() As Object
         Set ret = CreateObject(progIDs(i))
         If Not ret Is Nothing Then Exit For
     Next
-    On Error GoTo 0
 
     Set CreateHttpRequest = ret
 End Function
