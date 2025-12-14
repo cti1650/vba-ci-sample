@@ -3,17 +3,52 @@
     VBAファイル (.bas, .cls) をVBScript (.vbs) に変換する
 
 .DESCRIPTION
-    以下の変換を行う:
+    VBA固有の構文をVBSで動作するように変換する。
+
+    主な変換:
     - VBA固有のヘッダー行を削除 (VERSION, BEGIN/END, Attribute)
     - 型宣言を削除 (As Long, As String, As Variant 等)
     - ByVal/ByRef の型宣言を削除
-    - 関数戻り値の型宣言を削除
+    - 関数/Property戻り値の型宣言を削除
     - .cls ファイルは Class ... End Class で囲む
-    - Enum/Type ブロックを削除
-    - Debug.Print を WScript.Echo に変換
+    - Enum/Type ブロックを削除し、グローバル変数として出力
+    - Debug.Print を DebugPrint に変換
     - Static 変数宣言を Dim に変換
     - DefInt/DefLng 等を削除
     - On Error GoTo ラベル を On Error Resume Next に変換
+    - Optional引数のデフォルト値を削除
+    - With New ClassName を複数行に分割
+    - ThisWorkbook.Path を GetScriptDir() に変換 (Class内はインライン展開)
+    - Left$/Mid$/Right$ 等の型付き関数を通常版に変換
+    - Chr$/ChrW$/Str$/Hex$/Oct$/Date$/Time$/Error$ なども通常版に変換
+    - Class内ではEnum定数をリテラル値に置換
+    - Utils.Method → UtilsMethod に変換
+    - ParamArray を削除
+    - Event/RaiseEvent を削除
+    - Friend キーワードを削除
+    - WithEvents を削除
+    - Implements を削除
+    - Declare文（API宣言）を削除
+    - #If/#End If 条件コンパイルを削除
+    - GoSub/Return をコメントアウト
+    - Open/Close/Print#/Input#/Line Input# をコメントアウト
+    - LSet/RSet に警告コメント追加
+    - AddressOf をコメントアウト
+    - Resume/Resume Next をコメントアウト
+
+    VBS互換性の制約:
+    - VBSのClassからはグローバル変数/関数にアクセスできない
+    - VBSのカスタムClassはFor Eachに対応していない
+    - VBSにはOptional引数のデフォルト値がない
+    - VBSにはStatic変数がない
+    - VBSにはラベルへのジャンプがない
+    - VBSにはEnum/Type/Event/ParamArrayがない
+    - VBSにはFriend/WithEvents/Implementsがない
+    - VBSにはDeclare（API宣言）がない
+    - VBSにはGoSub/Returnがない
+    - VBSにはOpen/Close#文法のファイルI/Oがない（FSOを使う）
+    - VBSにはLSet/RSetがない
+    - VBSにはAddressOfがない
 
 .PARAMETER InputDirs
     入力ディレクトリ (VBAファイルがあるディレクトリ、複数指定可能)
@@ -213,6 +248,51 @@ function Convert-VbaToVbs {
             continue
         }
 
+        # Declare 文をスキップ (VBSにはAPI宣言がない)
+        # 例: Private Declare Function GetTickCount Lib "kernel32" () As Long
+        # 例: Private Declare PtrSafe Function ...
+        if ($line -match "^\s*(Public\s+|Private\s+)?Declare\s+(PtrSafe\s+)?(Function|Sub)\s+") {
+            continue
+        }
+
+        # GoSub/Return をコメントアウト (VBSにはGoSubがない)
+        if ($line -match "^\s*GoSub\s+") {
+            $line = "' [VBS UNSUPPORTED] " + $line
+        }
+        if ($line -match "^\s*Return\s*$") {
+            $line = "' [VBS UNSUPPORTED] " + $line
+        }
+
+        # Line Input # をコメントアウト (VBSでは別の方法を使う)
+        if ($line -match "^\s*Line\s+Input\s+#") {
+            $line = "' [VBS UNSUPPORTED] " + $line
+        }
+
+        # Open ... For ... をコメントアウト (VBSではFSOを使う)
+        if ($line -match "^\s*Open\s+.*\s+For\s+(Input|Output|Append|Binary|Random)\s+") {
+            $line = "' [VBS UNSUPPORTED] " + $line
+        }
+
+        # Close # をコメントアウト
+        if ($line -match "^\s*Close\s+#") {
+            $line = "' [VBS UNSUPPORTED] " + $line
+        }
+
+        # Print #, Write #, Input # をコメントアウト
+        if ($line -match "^\s*(Print|Write|Input)\s+#") {
+            $line = "' [VBS UNSUPPORTED] " + $line
+        }
+
+        # Get #, Put # をコメントアウト (バイナリファイルI/O)
+        if ($line -match "^\s*(Get|Put)\s+#") {
+            $line = "' [VBS UNSUPPORTED] " + $line
+        }
+
+        # Seek # をコメントアウト
+        if ($line -match "^\s*Seek\s+#") {
+            $line = "' [VBS UNSUPPORTED] " + $line
+        }
+
         # WithEvents をスキップ (VBSにはイベントがない)
         # 例: Private WithEvents obj As Object → Private obj
         $converted = $line -replace "\bWithEvents\s+", ""
@@ -234,16 +314,23 @@ function Convert-VbaToVbs {
             $converted = $converted -replace "On\s+Error\s+GoTo\s+\w+", "On Error Resume Next"
         }
 
-        # Optional引数のデフォルト値付き型宣言を削除: Optional ByRef key As String = "" → Optional ByRef key = ""
-        $converted = $converted -replace "(\bOptional\s+(?:ByVal\s+|ByRef\s+)?\w+)\s+As\s+\w+(\s*=)", '$1$2'
-
         # VBSではOptionalパラメータにデフォルト値を指定できない
-        # Optional ByRef key = "" → key (Optionalとデフォルト値を削除)
-        # Optional ByVal key = "" → ByVal key
-        # Optional key = "" → key
+        # 完全なパターン: Optional ByRef key As String = "" → key
+        # 完全なパターン: Optional ByVal key As String = "" → ByVal key
+        # 型宣言なし: Optional ByRef key = "" → key
+        # 型宣言なし: Optional ByVal key = "" → ByVal key
+        # ByRef/ByValなし: Optional key As String = "" → key
+        # ByRef/ByValなし: Optional key = "" → key
+        $converted = $converted -replace "\bOptional\s+ByRef\s+(\w+)\s+As\s+\w+\s*=\s*[^,\)]+", '$1'
+        $converted = $converted -replace "\bOptional\s+ByVal\s+(\w+)\s+As\s+\w+\s*=\s*[^,\)]+", 'ByVal $1'
+        $converted = $converted -replace "\bOptional\s+(\w+)\s+As\s+\w+\s*=\s*[^,\)]+", '$1'
         $converted = $converted -replace "\bOptional\s+ByRef\s+(\w+)\s*=\s*[^,\)]+", '$1'
         $converted = $converted -replace "\bOptional\s+ByVal\s+(\w+)\s*=\s*[^,\)]+", 'ByVal $1'
         $converted = $converted -replace "\bOptional\s+(\w+)\s*=\s*[^,\)]+", '$1'
+        # デフォルト値なしのOptional: Optional ByRef key As String → key
+        $converted = $converted -replace "\bOptional\s+ByRef\s+(\w+)\s+As\s+\w+", '$1'
+        $converted = $converted -replace "\bOptional\s+ByVal\s+(\w+)\s+As\s+\w+", 'ByVal $1'
+        $converted = $converted -replace "\bOptional\s+(\w+)\s+As\s+\w+", '$1'
 
         # 型宣言を削除: As Long, As String, As Boolean, As Variant, As Integer, As Double, As Object, As Collection 等
         $converted = $converted -replace "\s+As\s+\w+(?=\s*[,\)\r\n]|$)", ""
@@ -290,6 +377,7 @@ function Convert-VbaToVbs {
         }
 
         # Left$, Mid$, Right$, Replace$, Trim$, LTrim$, RTrim$, UCase$, LCase$, Space$, String$ → $ なし版
+        # また、Chr$, ChrW$, ChrB$, Str$, Format$, Hex$, Oct$ も対応
         $converted = $converted -replace "\bLeft\$\(", "Left("
         $converted = $converted -replace "\bMid\$\(", "Mid("
         $converted = $converted -replace "\bRight\$\(", "Right("
@@ -301,6 +389,71 @@ function Convert-VbaToVbs {
         $converted = $converted -replace "\bLCase\$\(", "LCase("
         $converted = $converted -replace "\bSpace\$\(", "Space("
         $converted = $converted -replace "\bString\$\(", "String("
+        $converted = $converted -replace "\bChr\$\(", "Chr("
+        $converted = $converted -replace "\bChrW\$\(", "ChrW("
+        $converted = $converted -replace "\bChrB\$\(", "Chr("
+        $converted = $converted -replace "\bStr\$\(", "CStr("
+        $converted = $converted -replace "\bFormat\$\(", "FormatNumber("
+        $converted = $converted -replace "\bHex\$\(", "Hex("
+        $converted = $converted -replace "\bOct\$\(", "Oct("
+        $converted = $converted -replace "\bDate\$", "CStr(Date)"
+        $converted = $converted -replace "\bTime\$", "CStr(Time)"
+        $converted = $converted -replace "\bError\$\(", "Error("
+
+        # LSet/RSet → 代替処理（VBSにはLSet/RSetがない）
+        # LSet str = value → str = Left(value & Space(Len(str)), Len(str))
+        # 完全な変換は複雑なのでコメントで警告
+        if ($converted -match "\bLSet\s+") {
+            $converted = "' [VBS WARNING: LSet needs manual conversion] " + $converted
+        }
+        if ($converted -match "\bRSet\s+") {
+            $converted = "' [VBS WARNING: RSet needs manual conversion] " + $converted
+        }
+
+        # AddressOf をコメントアウト (VBSにはAddressOfがない)
+        if ($converted -match "\bAddressOf\s+") {
+            $converted = "' [VBS UNSUPPORTED: AddressOf] " + $converted
+        }
+
+        # Resume/Resume Next/Resume ラベル の処理
+        # Resume Next は On Error Resume Next と組み合わせて使われるが、単独では問題
+        if ($converted -match "^\s*Resume\s+Next\s*$") {
+            # On Error Resume Next の後のResume Nextは通常不要
+            $converted = "' [VBS: Resume Next removed] " + $converted
+        }
+        if ($converted -match "^\s*Resume\s+\w+\s*$" -and $converted -notmatch "^\s*Resume\s+Next") {
+            $converted = "' [VBS UNSUPPORTED: Resume label] " + $converted
+        }
+        if ($converted -match "^\s*Resume\s*$") {
+            $converted = "' [VBS UNSUPPORTED: Resume] " + $converted
+        }
+
+        # DoEvents → DoEvents() に変換（VBSでは引数なしでも括弧が必要な場合がある）
+        # vba-compat.vbs でモック提供済み
+
+        # Erase 配列 → 配列を空にリセット（VBSでも使える）
+        # 変換不要
+
+        # ParamArray を削除（VBSではParamArrayがない）
+        # ParamArray args() As Variant → args
+        $converted = $converted -replace "\bParamArray\s+(\w+)\(\)\s+As\s+\w+", '$1'
+        $converted = $converted -replace "\bParamArray\s+(\w+)\(\)", '$1'
+
+        # Event 宣言を削除（VBSにはEventがない）
+        if ($converted -match "^\s*(Public\s+|Private\s+)?Event\s+") {
+            continue
+        }
+
+        # RaiseEvent を削除（VBSにはRaiseEventがない）
+        if ($converted -match "^\s*RaiseEvent\s+") {
+            continue
+        }
+
+        # Friend を削除（VBSにはFriendがない）
+        $converted = $converted -replace "\bFriend\s+(Sub|Function|Property)\b", '$1'
+
+        # Property Get/Let/Set の型宣言を削除
+        $converted = $converted -replace "(Property\s+(?:Get|Let|Set)\s+\w+\([^)]*\))\s+As\s+\w+", '$1'
 
         # EnumName.Member → EnumName_Member に変換
         # ファイル内のEnum定義を使って変換

@@ -187,7 +187,7 @@ End Function
 Public Function Glob(Optional ByVal url As String = "") As Object
 
     With New Glob
-        .SetType = dictionary
+        .SetType = GlobDataType.dictionary
         Set Glob = .iGlob(url)
     End With
 
@@ -199,7 +199,7 @@ Public Function GlobFolder(Optional ByVal url As String = "") As Object
     Dim List As Object
     Set List = CreateObject("scripting.dictionary")
     With New Glob
-        .SetType = Collection
+        .SetType = GlobDataType.Collection
         For Each item In Me.iGlob(url)
             If TypeName(item) = "File" Then
                 If List.Exists(item.ParentFolder) = False Then

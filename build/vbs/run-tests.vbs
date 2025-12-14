@@ -1,5 +1,8 @@
 ' run-tests.vbs - テスト実行エントリーポイント
 ' VBAから変換されたVBSファイルを読み込み、Test_* 関数を自動検出して実行する
+'
+' 重要: すべてのコードを1つの文字列に結合してからExecuteGlobalを呼ぶ
+' これにより、すべてのコードが同じグローバルスコープに存在し、相互参照が可能になる
 Option Explicit
 
 Dim fso, scriptDir, genDir, compatPath
@@ -8,63 +11,65 @@ scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
 genDir = fso.BuildPath(scriptDir, "generated")
 compatPath = fso.BuildPath(scriptDir, "vba-compat.vbs")
 
-' GetScriptDir()をグローバルスコープで定義
-' ExecuteGlobalで読み込んだコードから呼び出せるように、ここで直接定義する
-' scriptDirの値を埋め込んだ関数を動的に生成
-Dim getScriptDirCode
-getScriptDirCode = "Function GetScriptDir()" & vbCrLf & _
-                   "    GetScriptDir = """ & scriptDir & """" & vbCrLf & _
-                   "End Function"
-ExecuteGlobal getScriptDirCode
-
-' VBA互換レイヤーを読み込み（GetScriptDir以外の関数）
-If fso.FileExists(compatPath) Then
-    ExecuteGlobal fso.OpenTextFile(compatPath).ReadAll
-End If
-
-' 生成されたVBSファイルを全て読み込み
-Dim file, files, code, fileContent, enumsPath
-code = ""
-
 If Not fso.FolderExists(genDir) Then
     WScript.Echo "ERROR: generated folder not found: " & genDir
     WScript.Quit 1
 End If
 
-' _enums.vbs を最初に読み込む（Enum定数の定義）
-enumsPath = fso.BuildPath(genDir, "_enums.vbs")
-If fso.FileExists(enumsPath) Then
-    ExecuteGlobal fso.OpenTextFile(enumsPath).ReadAll
+' ============================================
+' Step 1: すべてのコードを1つの文字列に結合
+' ============================================
+Dim allCode, file, files, fileContent, enumsPath
+
+' GetScriptDir関数を最初に定義（scriptDirの値を埋め込む）
+allCode = "' === GetScriptDir ===" & vbCrLf & _
+          "Function GetScriptDir()" & vbCrLf & _
+          "    GetScriptDir = """ & scriptDir & """" & vbCrLf & _
+          "End Function" & vbCrLf & vbCrLf
+
+' VBA互換レイヤーを追加
+If fso.FileExists(compatPath) Then
+    allCode = allCode & "' === vba-compat.vbs ===" & vbCrLf & _
+              fso.OpenTextFile(compatPath).ReadAll & vbCrLf & vbCrLf
 End If
 
-' 各ファイルを個別にExecuteGlobalで実行
+' _enums.vbs を追加（Enum定数の定義）
+enumsPath = fso.BuildPath(genDir, "_enums.vbs")
+If fso.FileExists(enumsPath) Then
+    allCode = allCode & "' === _enums.vbs ===" & vbCrLf & _
+              fso.OpenTextFile(enumsPath).ReadAll & vbCrLf & vbCrLf
+End If
+
+' 各生成ファイルを追加
 Set files = fso.GetFolder(genDir).Files
 For Each file In files
     If LCase(fso.GetExtensionName(file.Name)) = "vbs" Then
-        ' _enums.vbs は既に読み込み済みなのでスキップ
-        If LCase(file.Name) = "_enums.vbs" Then
-            ' Skip
-        Else
-            fileContent = fso.OpenTextFile(file.Path).ReadAll
-            On Error Resume Next
-            ExecuteGlobal fileContent
-            If Err.Number <> 0 Then
-                WScript.Echo "ERROR loading " & file.Name & ": " & Err.Description
-                Err.Clear
-            End If
-            On Error GoTo 0
-            ' テスト検出用にコードを蓄積
-            code = code & vbCrLf & fileContent
+        If LCase(file.Name) <> "_enums.vbs" Then
+            allCode = allCode & "' === " & file.Name & " ===" & vbCrLf & _
+                      fso.OpenTextFile(file.Path).ReadAll & vbCrLf & vbCrLf
         End If
     End If
 Next
 
-' Test_ で始まる関数を検出して実行
+' ============================================
+' Step 2: すべてのコードを一度にExecuteGlobal
+' ============================================
+On Error Resume Next
+ExecuteGlobal allCode
+If Err.Number <> 0 Then
+    WScript.Echo "ERROR loading code: " & Err.Description
+    WScript.Echo "Error source: " & Err.Source
+    WScript.Quit 1
+End If
+On Error GoTo 0
+
+' ============================================
+' Step 3: Test_で始まる関数を検出
+' ============================================
 Dim passCount, failCount, testNames
 passCount = 0
 failCount = 0
 
-' コードからTest_で始まるSub/Functionを抽出
 Set testNames = CreateObject("Scripting.Dictionary")
 Dim regex, matches, match
 Set regex = New RegExp
@@ -72,7 +77,7 @@ regex.Global = True
 regex.IgnoreCase = True
 regex.Pattern = "(?:Sub|Function)\s+(Test_\w+)\s*\("
 
-Set matches = regex.Execute(code)
+Set matches = regex.Execute(allCode)
 For Each match In matches
     testNames(match.SubMatches(0)) = True
 Next
@@ -82,8 +87,9 @@ WScript.Echo "VBS Test Runner"
 WScript.Echo "========================================="
 WScript.Echo ""
 
-' 各テストを実行
-' ExecuteGlobalを使用してグローバルスコープで実行（GetScriptDir等のグローバル関数にアクセスするため）
+' ============================================
+' Step 4: 各テストを実行
+' ============================================
 Dim testName
 For Each testName In testNames.Keys
     On Error Resume Next
@@ -99,19 +105,19 @@ For Each testName In testNames.Keys
     On Error GoTo 0
 Next
 
-' 結果サマリー
+' ============================================
+' Step 5: 結果サマリー
+' ============================================
 WScript.Echo ""
 WScript.Echo "========================================="
 WScript.Echo "Results: " & passCount & " passed, " & failCount & " failed"
 WScript.Echo "========================================="
 
-' テストが1つもない場合はエラー
 If passCount + failCount = 0 Then
     WScript.Echo "ERROR: No tests found!"
     WScript.Quit 1
 End If
 
-' 終了コード
 If failCount > 0 Then
     WScript.Quit 1
 Else
