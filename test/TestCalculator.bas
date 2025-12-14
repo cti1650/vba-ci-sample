@@ -1,6 +1,10 @@
 Attribute VB_Name = "TestCalculator"
 Option Explicit
 
+Public Sub Test_Sample()
+  Utils.Fail 1000, "Sample test failed"
+End Sub
+
 Public Sub Test_Add()
   Dim c As Calculator
   Set c = New Calculator
