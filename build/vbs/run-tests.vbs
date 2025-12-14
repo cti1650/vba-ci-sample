@@ -168,6 +168,12 @@ For Each testName In testFunctions.Keys
 
     exitCode = exec.ExitCode
 
+    ' デバッグ: exitCodeとoutputを表示
+    If testName = "Test_UtilsFailWorks" Then
+        WScript.Echo "=== DEBUG: ExitCode = " & exitCode & " ==="
+        WScript.Echo "=== DEBUG: Output = " & output & " ==="
+    End If
+
     If exitCode = 0 Then
         WScript.Echo "[PASS] " & testName
         passCount = passCount + 1
