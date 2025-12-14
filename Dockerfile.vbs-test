@@ -1,0 +1,39 @@
+# VBScript testing environment using Wine
+# Note: This is a workaround for running cscript on non-Windows hosts
+FROM debian:bookworm-slim
+
+# Install Wine and Node.js
+RUN dpkg --add-architecture i386 && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        wine \
+        wine32 \
+        wine64 \
+        curl \
+        ca-certificates \
+        make \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js 20.x
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+# Initialize Wine (suppress GUI prompts)
+ENV WINEDEBUG=-all
+ENV DISPLAY=
+RUN wineboot --init 2>/dev/null || true
+
+WORKDIR /app
+
+# Copy package files for caching
+COPY build/package*.json ./build/
+
+# Install Node.js dependencies
+RUN cd build && npm ci
+
+# Copy the rest of the project
+COPY . .
+
+# Default command
+CMD ["make", "test-all"]

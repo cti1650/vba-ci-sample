@@ -1,0 +1,25 @@
+# Git
+.git
+.gitignore
+
+# Node.js
+node_modules/
+build/node_modules/
+
+# Generated files (will be regenerated in container)
+build/vbs/generated/
+build/vbs/vba-compat.vbs
+
+# IDE
+.vscode/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Plans
+.claude/

@@ -1,0 +1,21 @@
+services:
+  vbs-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.vbs-test
+    volumes:
+      - ./src:/app/src:ro
+      - ./test:/app/test:ro
+      - ./build:/app/build
+    working_dir: /app
+    # Auto-remove container after exit
+    # Use `docker compose run --rm vbs-test` to run
+    command: ["make", "test-vbs-docker"]
+
+  # Node.js converter tests (cross-platform)
+  converter-test:
+    image: node:20-slim
+    volumes:
+      - ./build:/app/build
+    working_dir: /app/build
+    command: ["npm", "test"]
