@@ -34,21 +34,6 @@ jobs:
       - name: Convert VBA to VBS
         run: node build/converter/index.js --input ./src ./test --output ./build/vbs/generated
 
-      - name: Debug - Show vba-compat.vbs (UtilsFail section)
-        shell: pwsh
-        run: |
-          Write-Host "===== vba-compat.vbs (UtilsFail section) ====="
-          Get-Content ./build/vbs/vba-compat.vbs | Select-String -Pattern "UtilsFail|Assert" -Context 1,3
-
-      - name: Debug - Show generated files
-        shell: pwsh
-        run: |
-          Get-ChildItem ./build/vbs/generated -Recurse | ForEach-Object {
-            Write-Host "===== $($_.Name) ====="
-            Get-Content $_.FullName
-            Write-Host ""
-          }
-
       - name: Run VBS tests
         shell: pwsh
         run: |
