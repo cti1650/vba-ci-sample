@@ -3,7 +3,7 @@ name: VBS CI
 on:
   workflow_dispatch:
   push:
-    branches: [ "main", "feature/*" ]
+    branches: [ "main" ]
   pull_request:
     branches: [ "main", "feature/*" ]
 
