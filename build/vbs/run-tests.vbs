@@ -29,15 +29,23 @@ allCode = "' === GetScriptDir ===" & vbCrLf & _
 
 ' VBA互換レイヤーを追加
 If fso.FileExists(compatPath) Then
-    allCode = allCode & "' === vba-compat.vbs ===" & vbCrLf & _
-              fso.OpenTextFile(compatPath).ReadAll & vbCrLf & vbCrLf
+    Dim compatFile
+    Set compatFile = fso.GetFile(compatPath)
+    If compatFile.Size > 0 Then
+        allCode = allCode & "' === vba-compat.vbs ===" & vbCrLf & _
+                  fso.OpenTextFile(compatPath).ReadAll & vbCrLf & vbCrLf
+    End If
 End If
 
 ' _enums.vbs を追加（Enum定数の定義）
 enumsPath = fso.BuildPath(genDir, "_enums.vbs")
 If fso.FileExists(enumsPath) Then
-    allCode = allCode & "' === _enums.vbs ===" & vbCrLf & _
-              fso.OpenTextFile(enumsPath).ReadAll & vbCrLf & vbCrLf
+    Dim enumsFile
+    Set enumsFile = fso.GetFile(enumsPath)
+    If enumsFile.Size > 0 Then
+        allCode = allCode & "' === _enums.vbs ===" & vbCrLf & _
+                  fso.OpenTextFile(enumsPath).ReadAll & vbCrLf & vbCrLf
+    End If
 End If
 
 ' 各生成ファイルを追加
@@ -45,8 +53,11 @@ Set files = fso.GetFolder(genDir).Files
 For Each file In files
     If LCase(fso.GetExtensionName(file.Name)) = "vbs" Then
         If LCase(file.Name) <> "_enums.vbs" Then
-            allCode = allCode & "' === " & file.Name & " ===" & vbCrLf & _
-                      fso.OpenTextFile(file.Path).ReadAll & vbCrLf & vbCrLf
+            ' 空ファイルをスキップ（ReadAllで"Input past end of file"エラーを防ぐ）
+            If file.Size > 0 Then
+                allCode = allCode & "' === " & file.Name & " ===" & vbCrLf & _
+                          fso.OpenTextFile(file.Path).ReadAll & vbCrLf & vbCrLf
+            End If
         End If
     End If
 Next
