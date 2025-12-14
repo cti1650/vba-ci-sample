@@ -490,6 +490,20 @@ describe('nested control structures', () => {
           scope: 'all',
           priority: 100,
         },
+        {
+          name: 'on-error-goto-0',
+          pattern: '.*On\\s+Error\\s+GoTo\\s+0.*',
+          replacement: '',
+          scope: 'all',
+          priority: 149,
+        },
+        {
+          name: 'on-error-goto-label',
+          pattern: 'On\\s+Error\\s+GoTo\\s+\\w+',
+          replacement: 'On Error Resume Next',
+          scope: 'all',
+          priority: 150,
+        },
       ],
       optionalParams: [],
       typeRemoval: [],
@@ -679,6 +693,29 @@ describe('nested control structures', () => {
 
       expect(result[5]).toBe('  DebugPrint "Processing..."');
       expect(result[8]).toBe('  DebugPrint Err.Description');
+    });
+
+    it('should remove On Error GoTo 0 lines', () => {
+      const lines = [
+        'Sub Test()',
+        '  On Error Resume Next',
+        '  x = DoSomething()',
+        '  On Error GoTo 0',
+        '  Debug.Print x',
+        'End Sub',
+      ];
+
+      const result = lines.map(line => applySyntaxTransforms(line, syntaxRules, false));
+
+      expect(result[1]).toBe('  On Error Resume Next');
+      expect(result[3]).toBe('');  // On Error GoTo 0 should be removed
+      expect(result[4]).toBe('  DebugPrint x');
+    });
+
+    it('should convert On Error GoTo Label to On Error Resume Next', () => {
+      const line = '  On Error GoTo ErrorHandler';
+      const result = applySyntaxTransforms(line, syntaxRules, false);
+      expect(result).toBe('  On Error Resume Next');
     });
   });
 

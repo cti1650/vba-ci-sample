@@ -42,9 +42,17 @@
       "priority": 140
     },
     {
+      "name": "on-error-goto-0",
+      "description": "On Error GoTo 0 -> remove line (VBS does not support this)",
+      "pattern": ".*On\\s+Error\\s+GoTo\\s+0.*",
+      "replacement": "",
+      "scope": "all",
+      "priority": 149
+    },
+    {
       "name": "on-error-goto-label",
-      "description": "On Error GoTo Label -> On Error Resume Next (except GoTo 0)",
-      "pattern": "On\\s+Error\\s+GoTo\\s+(?!0\\s*$)\\w+",
+      "description": "On Error GoTo Label -> On Error Resume Next",
+      "pattern": "On\\s+Error\\s+GoTo\\s+\\w+",
       "replacement": "On Error Resume Next",
       "scope": "all",
       "priority": 150
