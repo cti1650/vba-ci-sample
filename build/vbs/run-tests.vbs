@@ -114,6 +114,9 @@ WScript.Echo ""
 
 Dim testName, testCode, testFile, testPath, exitCode
 Dim passCount, failCount, errorOutput
+Dim exec, output
+Dim lineMatch, lineNum
+Dim testFileContent, testLines, startLine, endLine, i2
 passCount = 0
 failCount = 0
 
@@ -131,7 +134,6 @@ For Each testName In testFunctions.Keys
     testFile.Close
 
     ' テストを実行
-    Dim exec, output
     Set exec = shell.Exec("cscript //nologo """ & testPath & """")
 
     ' 出力を収集
@@ -157,6 +159,33 @@ For Each testName In testFunctions.Keys
         WScript.Echo "[FAIL] " & testName
         If Len(Trim(output)) > 0 Then
             WScript.Echo "       " & Replace(Trim(output), vbCrLf, vbCrLf & "       ")
+
+            ' 行番号を抽出してデバッグ出力
+            Set lineMatch = New RegExp
+            lineMatch.Pattern = "\((\d+),"
+            lineMatch.IgnoreCase = True
+            If lineMatch.Test(output) Then
+                lineNum = CLng(lineMatch.Execute(output)(0).SubMatches(0))
+                WScript.Echo "       --- Debug: Line " & lineNum & " ---"
+
+                ' テストファイルを読んで該当行を表示
+                Set testFileContent = fso.OpenTextFile(testPath, 1)
+                testLines = Split(testFileContent.ReadAll, vbCrLf)
+                testFileContent.Close
+
+                startLine = lineNum - 3
+                endLine = lineNum + 2
+                If startLine < 0 Then startLine = 0
+                If endLine > UBound(testLines) Then endLine = UBound(testLines)
+
+                For i2 = startLine To endLine
+                    If i2 = lineNum - 1 Then
+                        WScript.Echo "       >>> " & (i2 + 1) & ": " & testLines(i2)
+                    Else
+                        WScript.Echo "           " & (i2 + 1) & ": " & testLines(i2)
+                    End If
+                Next
+            End If
         End If
         failCount = failCount + 1
     End If
