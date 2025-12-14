@@ -1,6 +1,5 @@
 services:
   # Node.js converter tests (cross-platform)
-  # VBS tests require real Windows - use GitHub Actions
   converter-test:
     image: node:20-slim
     volumes:

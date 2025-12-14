@@ -12,13 +12,12 @@ help:
 	@echo "  make convert        - Convert VBA to VBS"
 	@echo "  make clean          - Clean generated files"
 	@echo ""
-	@echo "Docker commands (for cross-platform converter testing):"
+	@echo "Docker commands:"
 	@echo "  make docker-build   - Build Docker image"
 	@echo "  make docker-test    - Run converter tests in Docker"
 	@echo "  make docker-clean   - Remove Docker containers and images"
 	@echo ""
-	@echo "Note: VBS tests require real Windows (GitHub Actions or local Windows)."
-	@echo "      Wine on ARM64 macOS/Linux cannot run cscript reliably."
+	@echo "Note: VBS tests require Windows. Use GitHub Actions for full CI."
 	@echo ""
 
 # Install dependencies
@@ -58,9 +57,9 @@ clean:
 	rm -rf build/vbs/generated/*
 	rm -f build/vbs/vba-compat.vbs
 
-# Docker commands (for converter tests only - VBS needs real Windows)
+# Docker commands
 docker-build:
-	docker compose build converter-test
+	docker compose build
 
 docker-test:
 	docker compose run --rm converter-test
