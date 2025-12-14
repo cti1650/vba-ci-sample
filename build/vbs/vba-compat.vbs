@@ -563,3 +563,824 @@ Const vbNo = 7
 
 ' 改行定数（VBSでも使えるが念のため）
 ' vbCr, vbLf, vbCrLf, vbNewLine, vbTab は VBS標準で使える
+
+' ============================================
+' WinAPI モック関数
+' VBAのDeclare文で宣言されるAPI関数のVBS用モック
+' 実際のAPIは呼べないため、テスト用のダミー実装
+' ============================================
+
+' --- kernel32.dll ---
+
+' GetTickCount - システム起動からの経過ミリ秒
+Function GetTickCount()
+    GetTickCount = CLng(Timer() * 1000) Mod 2147483647
+End Function
+
+' GetTickCount64 - 64ビット版（VBSではLongの範囲）
+Function GetTickCount64()
+    GetTickCount64 = CDbl(Timer() * 1000)
+End Function
+
+' Sleep はすでに定義済み（WScript.Sleepを使用）
+
+' GetCurrentProcessId - プロセスID取得
+Function GetCurrentProcessId()
+    ' WScriptのプロセスIDを返す代替
+    Dim shell, exec
+    Set shell = CreateObject("WScript.Shell")
+    GetCurrentProcessId = shell.Run("cmd /c echo %RANDOM%", 0, True)
+    GetCurrentProcessId = Int(Rnd() * 32767) + 1000 ' ダミーのプロセスID
+End Function
+
+' GetLastError - 最後のエラーコード
+Dim mock_LastError
+mock_LastError = 0
+Function GetLastError()
+    GetLastError = mock_LastError
+End Function
+
+Sub SetLastError(ByVal dwErrCode)
+    mock_LastError = dwErrCode
+End Sub
+
+' GetComputerName - コンピュータ名取得
+Function GetComputerNameA(ByRef lpBuffer, ByRef nSize)
+    Dim shell, name
+    Set shell = CreateObject("WScript.Shell")
+    name = shell.ExpandEnvironmentStrings("%COMPUTERNAME%")
+    lpBuffer = name
+    nSize = Len(name)
+    GetComputerNameA = 1 ' 成功
+End Function
+
+Function GetComputerNameW(ByRef lpBuffer, ByRef nSize)
+    GetComputerNameW = GetComputerNameA(lpBuffer, nSize)
+End Function
+
+' GetUserName - ユーザー名取得
+Function GetUserNameA(ByRef lpBuffer, ByRef nSize)
+    Dim shell, name
+    Set shell = CreateObject("WScript.Shell")
+    name = shell.ExpandEnvironmentStrings("%USERNAME%")
+    lpBuffer = name
+    nSize = Len(name)
+    GetUserNameA = 1 ' 成功
+End Function
+
+Function GetUserNameW(ByRef lpBuffer, ByRef nSize)
+    GetUserNameW = GetUserNameA(lpBuffer, nSize)
+End Function
+
+' GetTempPathA/W - 一時フォルダパス取得
+Function GetTempPathA(ByVal nBufferLength, ByRef lpBuffer)
+    Dim path
+    path = GetTempPath()
+    lpBuffer = path
+    GetTempPathA = Len(path)
+End Function
+
+Function GetTempPathW(ByVal nBufferLength, ByRef lpBuffer)
+    GetTempPathW = GetTempPathA(nBufferLength, lpBuffer)
+End Function
+
+' GetSystemDirectory - システムディレクトリ取得
+Function GetSystemDirectoryA(ByRef lpBuffer, ByVal uSize)
+    Dim shell, path
+    Set shell = CreateObject("WScript.Shell")
+    path = shell.ExpandEnvironmentStrings("%SystemRoot%\System32")
+    lpBuffer = path
+    GetSystemDirectoryA = Len(path)
+End Function
+
+Function GetSystemDirectoryW(ByRef lpBuffer, ByVal uSize)
+    GetSystemDirectoryW = GetSystemDirectoryA(lpBuffer, uSize)
+End Function
+
+' GetWindowsDirectory - Windowsディレクトリ取得
+Function GetWindowsDirectoryA(ByRef lpBuffer, ByVal uSize)
+    Dim shell, path
+    Set shell = CreateObject("WScript.Shell")
+    path = shell.ExpandEnvironmentStrings("%SystemRoot%")
+    lpBuffer = path
+    GetWindowsDirectoryA = Len(path)
+End Function
+
+Function GetWindowsDirectoryW(ByRef lpBuffer, ByVal uSize)
+    GetWindowsDirectoryW = GetWindowsDirectoryA(lpBuffer, uSize)
+End Function
+
+' QueryPerformanceCounter - 高精度タイマー
+Function QueryPerformanceCounter(ByRef lpPerformanceCount)
+    lpPerformanceCount = CDbl(Timer() * 1000000)
+    QueryPerformanceCounter = 1 ' 成功
+End Function
+
+' QueryPerformanceFrequency - タイマー周波数
+Function QueryPerformanceFrequency(ByRef lpFrequency)
+    lpFrequency = 1000000 ' 1MHz (ダミー)
+    QueryPerformanceFrequency = 1 ' 成功
+End Function
+
+' CopyMemory/RtlMoveMemory - メモリコピー（モック：何もしない）
+Sub CopyMemory(ByRef Destination, ByRef Source, ByVal Length)
+    ' VBSではメモリ操作不可、警告のみ
+    DebugPrint "[MOCK WARNING] CopyMemory called - operation not supported in VBS"
+End Sub
+
+Sub RtlMoveMemory(ByRef Destination, ByRef Source, ByVal Length)
+    CopyMemory Destination, Source, Length
+End Sub
+
+' --- user32.dll ---
+
+' MessageBox - メッセージボックス（CI用モック）
+Function MessageBoxA(ByVal hWnd, ByVal lpText, ByVal lpCaption, ByVal uType)
+    DebugPrint "[MessageBox] " & lpCaption & ": " & lpText
+    MessageBoxA = 1 ' IDOK
+End Function
+
+Function MessageBoxW(ByVal hWnd, ByVal lpText, ByVal lpCaption, ByVal uType)
+    MessageBoxW = MessageBoxA(hWnd, lpText, lpCaption, uType)
+End Function
+
+' GetActiveWindow - アクティブウィンドウハンドル
+Function GetActiveWindow()
+    GetActiveWindow = 0 ' ダミーハンドル
+End Function
+
+' GetForegroundWindow - フォアグラウンドウィンドウハンドル
+Function GetForegroundWindow()
+    GetForegroundWindow = 0 ' ダミーハンドル
+End Function
+
+' FindWindow - ウィンドウ検索
+Function FindWindowA(ByVal lpClassName, ByVal lpWindowName)
+    FindWindowA = 0 ' 見つからない
+End Function
+
+Function FindWindowW(ByVal lpClassName, ByVal lpWindowName)
+    FindWindowW = 0
+End Function
+
+' GetWindowText - ウィンドウテキスト取得
+Function GetWindowTextA(ByVal hWnd, ByRef lpString, ByVal nMaxCount)
+    lpString = ""
+    GetWindowTextA = 0
+End Function
+
+Function GetWindowTextW(ByVal hWnd, ByRef lpString, ByVal nMaxCount)
+    GetWindowTextW = GetWindowTextA(hWnd, lpString, nMaxCount)
+End Function
+
+' SetWindowText - ウィンドウテキスト設定
+Function SetWindowTextA(ByVal hWnd, ByVal lpString)
+    SetWindowTextA = 0 ' 失敗
+End Function
+
+Function SetWindowTextW(ByVal hWnd, ByVal lpString)
+    SetWindowTextW = 0
+End Function
+
+' GetCursorPos - カーソル位置取得
+Function GetCursorPos(ByRef lpPoint)
+    ' lpPointはオブジェクトまたは配列を想定
+    ' VBSでは構造体がないのでダミー値
+    GetCursorPos = 0
+End Function
+
+' SetCursorPos - カーソル位置設定
+Function SetCursorPos(ByVal X, ByVal Y)
+    SetCursorPos = 0
+End Function
+
+' GetAsyncKeyState - キー状態取得
+Function GetAsyncKeyState(ByVal vKey)
+    GetAsyncKeyState = 0 ' キーは押されていない
+End Function
+
+' GetKeyState - キー状態取得
+Function GetKeyState(ByVal nVirtKey)
+    GetKeyState = 0
+End Function
+
+' SendMessage - メッセージ送信（モック）
+Function SendMessageA(ByVal hWnd, ByVal Msg, ByVal wParam, ByVal lParam)
+    SendMessageA = 0
+End Function
+
+Function SendMessageW(ByVal hWnd, ByVal Msg, ByVal wParam, ByVal lParam)
+    SendMessageW = 0
+End Function
+
+' PostMessage - メッセージ投稿（モック）
+Function PostMessageA(ByVal hWnd, ByVal Msg, ByVal wParam, ByVal lParam)
+    PostMessageA = 0
+End Function
+
+Function PostMessageW(ByVal hWnd, ByVal Msg, ByVal wParam, ByVal lParam)
+    PostMessageW = 0
+End Function
+
+' --- shell32.dll ---
+
+' SHGetFolderPath - 特殊フォルダパス取得
+Function SHGetFolderPathA(ByVal hwndOwner, ByVal nFolder, ByVal hToken, ByVal dwFlags, ByRef pszPath)
+    Dim shell
+    Set shell = CreateObject("WScript.Shell")
+
+    Select Case nFolder
+        Case 0 ' CSIDL_DESKTOP
+            pszPath = shell.SpecialFolders("Desktop")
+        Case 5 ' CSIDL_PERSONAL (My Documents)
+            pszPath = shell.SpecialFolders("MyDocuments")
+        Case 26 ' CSIDL_APPDATA
+            pszPath = shell.ExpandEnvironmentStrings("%APPDATA%")
+        Case 28 ' CSIDL_LOCAL_APPDATA
+            pszPath = shell.ExpandEnvironmentStrings("%LOCALAPPDATA%")
+        Case 35 ' CSIDL_COMMON_DOCUMENTS
+            pszPath = shell.ExpandEnvironmentStrings("%PUBLIC%\Documents")
+        Case 36 ' CSIDL_PROGRAM_FILES
+            pszPath = shell.ExpandEnvironmentStrings("%ProgramFiles%")
+        Case 37 ' CSIDL_WINDOWS
+            pszPath = shell.ExpandEnvironmentStrings("%SystemRoot%")
+        Case Else
+            pszPath = ""
+    End Select
+
+    If pszPath <> "" Then
+        SHGetFolderPathA = 0 ' S_OK
+    Else
+        SHGetFolderPathA = 1 ' エラー
+    End If
+End Function
+
+Function SHGetFolderPathW(ByVal hwndOwner, ByVal nFolder, ByVal hToken, ByVal dwFlags, ByRef pszPath)
+    SHGetFolderPathW = SHGetFolderPathA(hwndOwner, nFolder, hToken, dwFlags, pszPath)
+End Function
+
+' --- ole32.dll / oleaut32.dll ---
+
+' CoCreateGuid - GUID生成
+Function CoCreateGuid(ByRef pguid)
+    ' VBSでGUID生成
+    Dim typeLib
+    Set typeLib = CreateObject("Scriptlet.TypeLib")
+    pguid = Mid(typeLib.GUID, 2, 36)
+    CoCreateGuid = 0 ' S_OK
+End Function
+
+' --- advapi32.dll ---
+
+' GetUserName は上で定義済み
+
+' RegOpenKeyEx - レジストリキーを開く（モック）
+Function RegOpenKeyExA(ByVal hKey, ByVal lpSubKey, ByVal ulOptions, ByVal samDesired, ByRef phkResult)
+    phkResult = 0
+    RegOpenKeyExA = 2 ' ERROR_FILE_NOT_FOUND
+End Function
+
+' RegQueryValueEx - レジストリ値を取得（モック）
+Function RegQueryValueExA(ByVal hKey, ByVal lpValueName, ByVal lpReserved, ByRef lpType, ByRef lpData, ByRef lpcbData)
+    RegQueryValueExA = 2 ' ERROR_FILE_NOT_FOUND
+End Function
+
+' RegCloseKey - レジストリキーを閉じる
+Function RegCloseKey(ByVal hKey)
+    RegCloseKey = 0 ' ERROR_SUCCESS
+End Function
+
+' ============================================
+' CreateObject モック/ラッパー
+' テスト用にCreateObjectをインターセプトして
+' モックオブジェクトを返す機能
+' ============================================
+
+' モックオブジェクト管理用Dictionary
+Dim mock_Objects
+Set mock_Objects = CreateObject("Scripting.Dictionary")
+
+' モック登録関数
+Sub RegisterMockObject(ByVal progId, ByVal mockObj)
+    mock_Objects(LCase(progId)) = mockObj
+End Sub
+
+' モック解除関数
+Sub UnregisterMockObject(ByVal progId)
+    If mock_Objects.Exists(LCase(progId)) Then
+        mock_Objects.Remove LCase(progId)
+    End If
+End Sub
+
+' 全モッククリア
+Sub ClearAllMocks()
+    mock_Objects.RemoveAll
+End Sub
+
+' CreateObjectのラッパー（モック対応）
+Function CreateObjectMock(ByVal progId)
+    Dim lowerProgId
+    lowerProgId = LCase(progId)
+
+    ' モックが登録されていればそれを返す
+    If mock_Objects.Exists(lowerProgId) Then
+        Set CreateObjectMock = mock_Objects(lowerProgId)
+        Exit Function
+    End If
+
+    ' モックがなければ実際のオブジェクトを生成
+    Set CreateObjectMock = CreateObject(progId)
+End Function
+
+' ============================================
+' Excel Application モック
+' ============================================
+Class MockExcelApplication
+    Private worksheets_
+    Private workbooks_
+    Private visible_
+    Private displayAlerts_
+    Private screenUpdating_
+    Private calculation_
+
+    Private Sub Class_Initialize()
+        Set worksheets_ = CreateObject("Scripting.Dictionary")
+        Set workbooks_ = CreateObject("Scripting.Dictionary")
+        visible_ = False
+        displayAlerts_ = True
+        screenUpdating_ = True
+        calculation_ = -4105 ' xlCalculationAutomatic
+    End Sub
+
+    Public Property Get Visible()
+        Visible = visible_
+    End Property
+
+    Public Property Let Visible(ByVal value)
+        visible_ = value
+    End Property
+
+    Public Property Get DisplayAlerts()
+        DisplayAlerts = displayAlerts_
+    End Property
+
+    Public Property Let DisplayAlerts(ByVal value)
+        displayAlerts_ = value
+    End Property
+
+    Public Property Get ScreenUpdating()
+        ScreenUpdating = screenUpdating_
+    End Property
+
+    Public Property Let ScreenUpdating(ByVal value)
+        screenUpdating_ = value
+    End Property
+
+    Public Property Get Calculation()
+        Calculation = calculation_
+    End Property
+
+    Public Property Let Calculation(ByVal value)
+        calculation_ = value
+    End Property
+
+    Public Property Get Workbooks()
+        Set Workbooks = workbooks_
+    End Property
+
+    Public Function Quit()
+        DebugPrint "[MockExcel] Application.Quit called"
+    End Function
+
+    Public Function Run(ByVal macroName)
+        DebugPrint "[MockExcel] Application.Run: " & macroName
+        Run = Empty
+    End Function
+
+    Public Property Get Version()
+        Version = "16.0" ' Excel 2016+
+    End Property
+
+    Public Property Get Name()
+        Name = "Microsoft Excel"
+    End Property
+End Class
+
+' Excelモック生成関数
+Function CreateMockExcelApplication()
+    Set CreateMockExcelApplication = New MockExcelApplication
+End Function
+
+' ============================================
+' Word Application モック
+' ============================================
+Class MockWordApplication
+    Private documents_
+    Private visible_
+    Private displayAlerts_
+
+    Private Sub Class_Initialize()
+        Set documents_ = CreateObject("Scripting.Dictionary")
+        visible_ = False
+        displayAlerts_ = 0
+    End Sub
+
+    Public Property Get Visible()
+        Visible = visible_
+    End Property
+
+    Public Property Let Visible(ByVal value)
+        visible_ = value
+    End Property
+
+    Public Property Get DisplayAlerts()
+        DisplayAlerts = displayAlerts_
+    End Property
+
+    Public Property Let DisplayAlerts(ByVal value)
+        displayAlerts_ = value
+    End Property
+
+    Public Property Get Documents()
+        Set Documents = documents_
+    End Property
+
+    Public Function Quit()
+        DebugPrint "[MockWord] Application.Quit called"
+    End Function
+
+    Public Property Get Version()
+        Version = "16.0"
+    End Property
+
+    Public Property Get Name()
+        Name = "Microsoft Word"
+    End Property
+End Class
+
+Function CreateMockWordApplication()
+    Set CreateMockWordApplication = New MockWordApplication
+End Function
+
+' ============================================
+' ADODB.Connection モック
+' ============================================
+Class MockADODBConnection
+    Private connectionString_
+    Private state_
+    Private errors_
+
+    Private Sub Class_Initialize()
+        connectionString_ = ""
+        state_ = 0 ' adStateClosed
+        Set errors_ = CreateObject("Scripting.Dictionary")
+    End Sub
+
+    Public Property Get ConnectionString()
+        ConnectionString = connectionString_
+    End Property
+
+    Public Property Let ConnectionString(ByVal value)
+        connectionString_ = value
+    End Property
+
+    Public Property Get State()
+        State = state_
+    End Property
+
+    Public Property Get Errors()
+        Set Errors = errors_
+    End Property
+
+    Public Sub Open(ByVal connStr)
+        If connStr <> "" Then connectionString_ = connStr
+        state_ = 1 ' adStateOpen
+        DebugPrint "[MockADODB] Connection.Open: " & connectionString_
+    End Sub
+
+    Public Sub Close()
+        state_ = 0 ' adStateClosed
+        DebugPrint "[MockADODB] Connection.Close"
+    End Sub
+
+    Public Function Execute(ByVal commandText)
+        DebugPrint "[MockADODB] Connection.Execute: " & commandText
+        Set Execute = New MockADODBRecordset
+    End Function
+
+    Public Function BeginTrans()
+        DebugPrint "[MockADODB] BeginTrans"
+        BeginTrans = 1
+    End Function
+
+    Public Sub CommitTrans()
+        DebugPrint "[MockADODB] CommitTrans"
+    End Sub
+
+    Public Sub RollbackTrans()
+        DebugPrint "[MockADODB] RollbackTrans"
+    End Sub
+End Class
+
+' ============================================
+' ADODB.Recordset モック
+' ============================================
+Class MockADODBRecordset
+    Private fields_
+    Private data_
+    Private currentRow_
+    Private eof_
+    Private bof_
+
+    Private Sub Class_Initialize()
+        Set fields_ = CreateObject("Scripting.Dictionary")
+        Set data_ = CreateObject("Scripting.Dictionary")
+        currentRow_ = -1
+        eof_ = True
+        bof_ = True
+    End Sub
+
+    Public Property Get EOF()
+        EOF = eof_
+    End Property
+
+    Public Property Get BOF()
+        BOF = bof_
+    End Property
+
+    Public Property Get Fields()
+        Set Fields = fields_
+    End Property
+
+    Public Property Get RecordCount()
+        RecordCount = data_.Count
+    End Property
+
+    Public Sub Open(ByVal source, ByVal conn)
+        DebugPrint "[MockADODB] Recordset.Open: " & source
+        eof_ = True
+        bof_ = True
+    End Sub
+
+    Public Sub Close()
+        DebugPrint "[MockADODB] Recordset.Close"
+    End Sub
+
+    Public Sub MoveFirst()
+        If data_.Count > 0 Then
+            currentRow_ = 0
+            eof_ = False
+            bof_ = False
+        End If
+    End Sub
+
+    Public Sub MoveNext()
+        currentRow_ = currentRow_ + 1
+        If currentRow_ >= data_.Count Then
+            eof_ = True
+        End If
+    End Sub
+
+    Public Sub MoveLast()
+        If data_.Count > 0 Then
+            currentRow_ = data_.Count - 1
+            eof_ = False
+            bof_ = False
+        End If
+    End Sub
+
+    Public Sub AddNew()
+        DebugPrint "[MockADODB] Recordset.AddNew"
+    End Sub
+
+    Public Sub Update()
+        DebugPrint "[MockADODB] Recordset.Update"
+    End Sub
+
+    Public Sub Delete()
+        DebugPrint "[MockADODB] Recordset.Delete"
+    End Sub
+End Class
+
+Function CreateMockADODBConnection()
+    Set CreateMockADODBConnection = New MockADODBConnection
+End Function
+
+Function CreateMockADODBRecordset()
+    Set CreateMockADODBRecordset = New MockADODBRecordset
+End Function
+
+' ============================================
+' XMLHTTP / ServerXMLHTTP モック
+' ============================================
+Class MockXMLHTTP
+    Private status_
+    Private statusText_
+    Private responseText_
+    Private responseXML_
+    Private readyState_
+    Private requestMethod_
+    Private requestUrl_
+    Private requestHeaders_
+
+    Private Sub Class_Initialize()
+        status_ = 200
+        statusText_ = "OK"
+        responseText_ = ""
+        Set responseXML_ = Nothing
+        readyState_ = 0
+        requestMethod_ = ""
+        requestUrl_ = ""
+        Set requestHeaders_ = CreateObject("Scripting.Dictionary")
+    End Sub
+
+    Public Property Get Status()
+        Status = status_
+    End Property
+
+    Public Property Get statusText()
+        statusText = statusText_
+    End Property
+
+    Public Property Get responseText()
+        responseText = responseText_
+    End Property
+
+    Public Property Get responseXML()
+        Set responseXML = responseXML_
+    End Property
+
+    Public Property Get readyState()
+        readyState = readyState_
+    End Property
+
+    Public Sub Open(ByVal method, ByVal url, ByVal async)
+        requestMethod_ = method
+        requestUrl_ = url
+        readyState_ = 1
+        DebugPrint "[MockXMLHTTP] Open: " & method & " " & url
+    End Sub
+
+    Public Sub setRequestHeader(ByVal header, ByVal value)
+        requestHeaders_(header) = value
+    End Sub
+
+    Public Sub send(ByVal body)
+        readyState_ = 4
+        DebugPrint "[MockXMLHTTP] Send: " & requestUrl_
+        If body <> "" Then
+            DebugPrint "[MockXMLHTTP] Body: " & Left(body, 100)
+        End If
+        ' デフォルトは空のレスポンス
+        responseText_ = "{}"
+    End Sub
+
+    Public Function getResponseHeader(ByVal header)
+        getResponseHeader = ""
+    End Function
+
+    Public Function getAllResponseHeaders()
+        getAllResponseHeaders = ""
+    End Function
+
+    ' テスト用：レスポンスを設定
+    Public Sub SetMockResponse(ByVal statusCode, ByVal text)
+        status_ = statusCode
+        responseText_ = text
+        If statusCode >= 200 And statusCode < 300 Then
+            statusText_ = "OK"
+        Else
+            statusText_ = "Error"
+        End If
+    End Sub
+End Class
+
+Function CreateMockXMLHTTP()
+    Set CreateMockXMLHTTP = New MockXMLHTTP
+End Function
+
+' ============================================
+' RegExp 追加メソッド（VBSのRegExpを拡張）
+' ============================================
+' VBSのRegExpは標準で使えるので追加定義不要
+
+' ============================================
+' WinAPI定数
+' ============================================
+
+' CSIDL定数（特殊フォルダ）
+Const CSIDL_DESKTOP = 0
+Const CSIDL_INTERNET = 1
+Const CSIDL_PROGRAMS = 2
+Const CSIDL_CONTROLS = 3
+Const CSIDL_PRINTERS = 4
+Const CSIDL_PERSONAL = 5
+Const CSIDL_FAVORITES = 6
+Const CSIDL_STARTUP = 7
+Const CSIDL_RECENT = 8
+Const CSIDL_SENDTO = 9
+Const CSIDL_BITBUCKET = 10
+Const CSIDL_STARTMENU = 11
+Const CSIDL_DESKTOPDIRECTORY = 16
+Const CSIDL_DRIVES = 17
+Const CSIDL_NETWORK = 18
+Const CSIDL_NETHOOD = 19
+Const CSIDL_FONTS = 20
+Const CSIDL_TEMPLATES = 21
+Const CSIDL_COMMON_STARTMENU = 22
+Const CSIDL_COMMON_PROGRAMS = 23
+Const CSIDL_COMMON_STARTUP = 24
+Const CSIDL_COMMON_DESKTOPDIRECTORY = 25
+Const CSIDL_APPDATA = 26
+Const CSIDL_PRINTHOOD = 27
+Const CSIDL_LOCAL_APPDATA = 28
+Const CSIDL_COMMON_FAVORITES = 31
+Const CSIDL_INTERNET_CACHE = 32
+Const CSIDL_COOKIES = 33
+Const CSIDL_HISTORY = 34
+Const CSIDL_COMMON_APPDATA = 35
+Const CSIDL_WINDOWS = 36
+Const CSIDL_SYSTEM = 37
+Const CSIDL_PROGRAM_FILES = 38
+Const CSIDL_MYPICTURES = 39
+Const CSIDL_PROFILE = 40
+Const CSIDL_PROGRAM_FILES_COMMON = 43
+Const CSIDL_COMMON_TEMPLATES = 45
+Const CSIDL_COMMON_DOCUMENTS = 46
+Const CSIDL_COMMON_ADMINTOOLS = 47
+Const CSIDL_ADMINTOOLS = 48
+Const CSIDL_COMMON_MUSIC = 53
+Const CSIDL_COMMON_PICTURES = 54
+Const CSIDL_COMMON_VIDEO = 55
+Const CSIDL_CDBURN_AREA = 59
+
+' 仮想キーコード
+Const VK_LBUTTON = &H1
+Const VK_RBUTTON = &H2
+Const VK_CANCEL = &H3
+Const VK_MBUTTON = &H4
+Const VK_BACK = &H8
+Const VK_TAB = &H9
+Const VK_CLEAR = &HC
+Const VK_RETURN = &HD
+Const VK_SHIFT = &H10
+Const VK_CONTROL = &H11
+Const VK_MENU = &H12
+Const VK_PAUSE = &H13
+Const VK_CAPITAL = &H14
+Const VK_ESCAPE = &H1B
+Const VK_SPACE = &H20
+Const VK_PRIOR = &H21
+Const VK_NEXT = &H22
+Const VK_END = &H23
+Const VK_HOME = &H24
+Const VK_LEFT = &H25
+Const VK_UP = &H26
+Const VK_RIGHT = &H27
+Const VK_DOWN = &H28
+Const VK_SELECT = &H29
+Const VK_PRINT = &H2A
+Const VK_EXECUTE = &H2B
+Const VK_SNAPSHOT = &H2C
+Const VK_INSERT = &H2D
+Const VK_DELETE = &H2E
+Const VK_HELP = &H2F
+Const VK_F1 = &H70
+Const VK_F2 = &H71
+Const VK_F3 = &H72
+Const VK_F4 = &H73
+Const VK_F5 = &H74
+Const VK_F6 = &H75
+Const VK_F7 = &H76
+Const VK_F8 = &H77
+Const VK_F9 = &H78
+Const VK_F10 = &H79
+Const VK_F11 = &H7A
+Const VK_F12 = &H7B
+
+' メッセージ定数
+Const WM_NULL = &H0
+Const WM_CREATE = &H1
+Const WM_DESTROY = &H2
+Const WM_MOVE = &H3
+Const WM_SIZE = &H5
+Const WM_ACTIVATE = &H6
+Const WM_SETFOCUS = &H7
+Const WM_KILLFOCUS = &H8
+Const WM_ENABLE = &HA
+Const WM_SETTEXT = &HC
+Const WM_GETTEXT = &HD
+Const WM_GETTEXTLENGTH = &HE
+Const WM_PAINT = &HF
+Const WM_CLOSE = &H10
+Const WM_QUIT = &H12
+Const WM_SHOWWINDOW = &H18
+Const WM_SETFONT = &H30
+Const WM_GETFONT = &H31
+Const WM_COMMAND = &H111
+Const WM_USER = &H400
+
+' Excel定数
+Const xlCalculationAutomatic = -4105
+Const xlCalculationManual = -4135
+Const xlCalculationSemiautomatic = 2

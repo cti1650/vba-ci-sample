@@ -55,6 +55,9 @@
 
 .PARAMETER OutputDir
     出力ディレクトリ (VBSファイルを出力するディレクトリ)
+
+.PARAMETER UseMockCreateObject
+    CreateObject呼び出しをCreateObjectMockに変換する（テスト用）
 #>
 
 param(
@@ -62,11 +65,76 @@ param(
     [string[]]$InputDirs,
 
     [Parameter(Mandatory=$true)]
-    [string]$OutputDir
+    [string]$OutputDir,
+
+    [Parameter(Mandatory=$false)]
+    [switch]$UseMockCreateObject = $false
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+
+# WinAPI関数のうち、vba-compat.vbs でモック提供されているもの
+$global:MockedApiFunctions = @(
+    # kernel32.dll
+    "GetTickCount", "GetTickCount64", "Sleep", "GetCurrentProcessId",
+    "GetLastError", "SetLastError", "GetComputerNameA", "GetComputerNameW",
+    "GetComputerName", "GetUserNameA", "GetUserNameW", "GetTempPathA", "GetTempPathW",
+    "GetSystemDirectoryA", "GetSystemDirectoryW", "GetWindowsDirectoryA", "GetWindowsDirectoryW",
+    "QueryPerformanceCounter", "QueryPerformanceFrequency", "CopyMemory", "RtlMoveMemory",
+    # user32.dll
+    "MessageBoxA", "MessageBoxW", "GetActiveWindow", "GetForegroundWindow",
+    "FindWindowA", "FindWindowW", "GetWindowTextA", "GetWindowTextW",
+    "SetWindowTextA", "SetWindowTextW", "GetCursorPos", "SetCursorPos",
+    "GetAsyncKeyState", "GetKeyState", "SendMessageA", "SendMessageW",
+    "PostMessageA", "PostMessageW",
+    # shell32.dll
+    "SHGetFolderPathA", "SHGetFolderPathW",
+    # ole32.dll
+    "CoCreateGuid",
+    # advapi32.dll
+    "RegOpenKeyExA", "RegQueryValueExA", "RegCloseKey"
+)
+
+# 全ファイルからDeclare文（API宣言）を収集する関数
+function Collect-ApiDeclarations {
+    param(
+        [string]$InputDir
+    )
+
+    $apiDeclarations = @{}  # FunctionName -> @{ Lib = "kernel32", Alias = "...", OriginalLine = "..." }
+    $files = Get-ChildItem -Path $InputDir -Include "*.bas", "*.cls" -Recurse
+
+    foreach ($file in $files) {
+        $content = Get-Content -Path $file.FullName -Raw -Encoding UTF8
+        $lines = $content -split "`r?`n"
+
+        foreach ($line in $lines) {
+            # Declare文をパース
+            # 例: Private Declare Function GetTickCount Lib "kernel32" () As Long
+            # 例: Private Declare PtrSafe Function Sleep Lib "kernel32" Alias "Sleep" (ByVal ms As Long)
+            if ($line -match "^\s*(Public\s+|Private\s+)?Declare\s+(PtrSafe\s+)?(Function|Sub)\s+(\w+)\s+Lib\s+""([^""]+)""") {
+                $funcName = $matches[4]
+                $libName = $matches[5]
+                $alias = ""
+
+                # Alias があるかチェック
+                if ($line -match "Alias\s+""([^""]+)""") {
+                    $alias = $matches[1]
+                }
+
+                $apiDeclarations[$funcName] = @{
+                    Lib = $libName
+                    Alias = $alias
+                    OriginalLine = $line.Trim()
+                    File = $file.Name
+                }
+            }
+        }
+    }
+
+    return $apiDeclarations
+}
 
 # 全ファイルからEnum定義を収集する関数
 function Collect-EnumDefinitions {
@@ -126,7 +194,9 @@ function Convert-VbaToVbs {
         [string]$Content,
         [string]$FileName,
         [bool]$IsClass,
-        [hashtable]$AllEnums = @{}
+        [hashtable]$AllEnums = @{},
+        [hashtable]$AllApiDeclarations = @{},
+        [bool]$UseMockCreateObject = $false
     )
 
     $lines = $Content -split "`r?`n"
@@ -484,6 +554,37 @@ function Convert-VbaToVbs {
             }
         }
 
+        # WinAPI関数呼び出しの処理
+        # モック提供されていないAPI関数の呼び出しには警告コメントを追加
+        foreach ($apiName in $AllApiDeclarations.Keys) {
+            if ($converted -match "\b${apiName}\s*\(") {
+                # モック提供されているかチェック
+                if ($global:MockedApiFunctions -contains $apiName) {
+                    # モック提供されている場合は何もしない（vba-compat.vbsで対応）
+                } else {
+                    # モック未提供のAPI呼び出しには警告を追加
+                    $apiInfo = $AllApiDeclarations[$apiName]
+                    if ($converted -notmatch "' \[VBS API MOCK\]") {
+                        $converted = "' [VBS API MOCK: $apiName from $($apiInfo.Lib) - returns default value] " + $converted
+                    }
+                }
+            }
+        }
+
+        # CreateObject をモック版に変換（オプション）
+        if ($UseMockCreateObject) {
+            # CreateObject("ProgID") → CreateObjectMock("ProgID")
+            # ただし、既にCreateObjectMockの場合は変換しない
+            # また、Scripting.FileSystemObject と Scripting.Dictionary は実際のオブジェクトを使う
+            if ($converted -match 'CreateObject\s*\(\s*"([^"]+)"' -and $converted -notmatch 'CreateObjectMock') {
+                $progId = $matches[1]
+                # FSO と Dictionary は実際のオブジェクトを使う（基本機能として必要）
+                if ($progId -notmatch "^Scripting\.(FileSystemObject|Dictionary)$") {
+                    $converted = $converted -replace '\bCreateObject\s*\(', 'CreateObjectMock('
+                }
+            }
+        }
+
         $result += $converted
     }
 
@@ -529,10 +630,13 @@ Write-Host "VBA to VBS Converter"
 Write-Host "========================================="
 Write-Host ""
 
-# Step 1: 全ディレクトリからEnum定義を収集
+# Step 1: 全ディレクトリからEnum定義とAPI宣言を収集
 $allEnums = @{}
+$allApiDeclarations = @{}
+
 foreach ($dir in $InputDirs) {
     if (Test-Path $dir) {
+        # Enum定義を収集
         $dirEnums = Collect-EnumDefinitions -InputDir $dir
         foreach ($enumName in $dirEnums.Keys) {
             if (-not $allEnums.ContainsKey($enumName)) {
@@ -540,6 +644,14 @@ foreach ($dir in $InputDirs) {
             }
             foreach ($memberName in $dirEnums[$enumName].Keys) {
                 $allEnums[$enumName][$memberName] = $dirEnums[$enumName][$memberName]
+            }
+        }
+
+        # API宣言を収集
+        $dirApis = Collect-ApiDeclarations -InputDir $dir
+        foreach ($apiName in $dirApis.Keys) {
+            if (-not $allApiDeclarations.ContainsKey($apiName)) {
+                $allApiDeclarations[$apiName] = $dirApis[$apiName]
             }
         }
     }
@@ -567,6 +679,31 @@ if ($allEnums.Count -gt 0) {
     Write-Host "[GENERATED] _enums.vbs"
 }
 
+# API宣言情報を表示
+if ($allApiDeclarations.Count -gt 0) {
+    Write-Host "[INFO] Collected API Declarations:"
+    $mockedCount = 0
+    $unmockedCount = 0
+    foreach ($apiName in $allApiDeclarations.Keys) {
+        $apiInfo = $allApiDeclarations[$apiName]
+        if ($global:MockedApiFunctions -contains $apiName) {
+            Write-Host "  - ${apiName} (${($apiInfo.Lib)}) [MOCKED]"
+            $mockedCount++
+        } else {
+            Write-Host "  - ${apiName} (${($apiInfo.Lib)}) [NOT MOCKED - will use default return]"
+            $unmockedCount++
+        }
+    }
+    Write-Host ""
+    Write-Host "[INFO] API Summary: $mockedCount mocked, $unmockedCount not mocked"
+    Write-Host ""
+}
+
+if ($UseMockCreateObject) {
+    Write-Host "[INFO] CreateObject calls will be converted to CreateObjectMock"
+    Write-Host ""
+}
+
 # Step 2: 全ディレクトリのファイルを変換
 $convertedCount = 0
 
@@ -581,7 +718,7 @@ foreach ($dir in $InputDirs) {
     foreach ($file in $files) {
         $content = Get-Content -Path $file.FullName -Raw -Encoding UTF8
         $isClass = $file.Extension -eq ".cls"
-        $converted = Convert-VbaToVbs -Content $content -FileName $file.Name -IsClass $isClass -AllEnums $allEnums
+        $converted = Convert-VbaToVbs -Content $content -FileName $file.Name -IsClass $isClass -AllEnums $allEnums -AllApiDeclarations $allApiDeclarations -UseMockCreateObject $UseMockCreateObject
 
         # 出力ファイル名: .bas/.cls → .vbs
         $outputName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name) + ".vbs"
