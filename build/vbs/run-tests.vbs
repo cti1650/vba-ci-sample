@@ -1,133 +1,183 @@
 ' run-tests.vbs - テスト実行エントリーポイント
 ' VBAから変換されたVBSファイルを読み込み、Test_* 関数を自動検出して実行する
 '
-' 重要: すべてのコードを1つの文字列に結合してからExecuteGlobalを呼ぶ
-' これにより、すべてのコードが同じグローバルスコープに存在し、相互参照が可能になる
+' 各Test_*関数を個別のVBSファイルとして生成し、cscriptで実行する
+' これにより、1つのテストが失敗しても他のテストは続行できる
 Option Explicit
 
-Dim fso, scriptDir, genDir, compatPath
+Dim fso, shell, scriptDir, genDir, compatPath, tempDir
 Set fso = CreateObject("Scripting.FileSystemObject")
+Set shell = CreateObject("WScript.Shell")
 scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
 genDir = fso.BuildPath(scriptDir, "generated")
 compatPath = fso.BuildPath(scriptDir, "vba-compat.vbs")
+tempDir = fso.BuildPath(scriptDir, "temp_tests")
 
 If Not fso.FolderExists(genDir) Then
     WScript.Echo "ERROR: generated folder not found: " & genDir
     WScript.Quit 1
 End If
 
-' ============================================
-' Step 1: すべてのコードを1つの文字列に結合
-' ============================================
-Dim allCode, file, files, fileContent, enumsPath
+' テンポラリディレクトリを作成
+If fso.FolderExists(tempDir) Then
+    fso.DeleteFolder tempDir, True
+End If
+fso.CreateFolder tempDir
 
-' GetScriptDir関数を最初に定義（scriptDirの値を埋め込む）
-allCode = "' === GetScriptDir ===" & vbCrLf & _
+' ============================================
+' Step 1: 共通コードを収集
+' ============================================
+Dim baseCode, file, files, enumsPath
+
+WScript.Echo "--- Collecting base code ---"
+
+' GetScriptDir関数
+baseCode = "' === GetScriptDir ===" & vbCrLf & _
           "Function GetScriptDir()" & vbCrLf & _
           "    GetScriptDir = """ & scriptDir & """" & vbCrLf & _
           "End Function" & vbCrLf & vbCrLf
 
-' VBA互換レイヤーを追加
+' vba-compat.vbs
 If fso.FileExists(compatPath) Then
-    Dim compatFile
-    Set compatFile = fso.GetFile(compatPath)
-    If compatFile.Size > 0 Then
-        allCode = allCode & "' === vba-compat.vbs ===" & vbCrLf & _
+    If fso.GetFile(compatPath).Size > 0 Then
+        baseCode = baseCode & "' === vba-compat.vbs ===" & vbCrLf & _
                   fso.OpenTextFile(compatPath).ReadAll & vbCrLf & vbCrLf
+        WScript.Echo "[OK] vba-compat.vbs"
     End If
 End If
 
-' _enums.vbs を追加（Enum定数の定義）
+' _enums.vbs
 enumsPath = fso.BuildPath(genDir, "_enums.vbs")
 If fso.FileExists(enumsPath) Then
-    Dim enumsFile
-    Set enumsFile = fso.GetFile(enumsPath)
-    If enumsFile.Size > 0 Then
-        allCode = allCode & "' === _enums.vbs ===" & vbCrLf & _
+    If fso.GetFile(enumsPath).Size > 0 Then
+        baseCode = baseCode & "' === _enums.vbs ===" & vbCrLf & _
                   fso.OpenTextFile(enumsPath).ReadAll & vbCrLf & vbCrLf
+        WScript.Echo "[OK] _enums.vbs"
     End If
 End If
 
-' 各生成ファイルを追加
+' 生成されたVBSファイル（クラス・モジュール）
+Dim classCode
+classCode = ""
 Set files = fso.GetFolder(genDir).Files
 For Each file In files
     If LCase(fso.GetExtensionName(file.Name)) = "vbs" Then
         If LCase(file.Name) <> "_enums.vbs" Then
-            ' 空ファイルをスキップ（ReadAllで"Input past end of file"エラーを防ぐ）
             If file.Size > 0 Then
-                allCode = allCode & "' === " & file.Name & " ===" & vbCrLf & _
-                          fso.OpenTextFile(file.Path).ReadAll & vbCrLf & vbCrLf
+                classCode = classCode & "' === " & file.Name & " ===" & vbCrLf & _
+                           fso.OpenTextFile(file.Path).ReadAll & vbCrLf & vbCrLf
+                WScript.Echo "[OK] " & file.Name
             End If
         End If
     End If
 Next
 
-' ============================================
-' Step 2: すべてのコードを一度にExecuteGlobal
-' ============================================
-On Error Resume Next
-ExecuteGlobal allCode
-If Err.Number <> 0 Then
-    WScript.Echo "ERROR loading code: " & Err.Description
-    WScript.Echo "Error source: " & Err.Source
-    WScript.Quit 1
-End If
-On Error GoTo 0
-
-' ============================================
-' Step 3: Test_で始まる関数を検出
-' ============================================
-Dim passCount, failCount, testNames
-passCount = 0
-failCount = 0
-
-Set testNames = CreateObject("Scripting.Dictionary")
-Dim regex, matches, match
-Set regex = New RegExp
-regex.Global = True
-regex.IgnoreCase = True
-regex.Pattern = "(?:Sub|Function)\s+(Test_\w+)\s*\("
-
-Set matches = regex.Execute(allCode)
-For Each match In matches
-    testNames(match.SubMatches(0)) = True
-Next
-
-WScript.Echo "========================================="
-WScript.Echo "VBS Test Runner"
-WScript.Echo "========================================="
+WScript.Echo "--- Base code collected ---"
 WScript.Echo ""
 
 ' ============================================
-' Step 4: 各テストを実行
+' Step 2: Test_*関数を検出
 ' ============================================
-Dim testName
-For Each testName In testNames.Keys
-    On Error Resume Next
-    ExecuteGlobal "Call " & testName & "()"
-    If Err.Number <> 0 Then
-        WScript.Echo "[FAIL] " & testName & ": " & Err.Description
-        failCount = failCount + 1
-        Err.Clear
-    Else
+Dim allCode, testFunctions, regex, matches, match
+allCode = baseCode & classCode
+
+Set testFunctions = CreateObject("Scripting.Dictionary")
+Set regex = New RegExp
+regex.Global = True
+regex.IgnoreCase = True
+regex.Pattern = "(?:Public\s+)?(?:Sub|Function)\s+(Test_\w+)\s*\("
+
+Set matches = regex.Execute(allCode)
+For Each match In matches
+    testFunctions(match.SubMatches(0)) = True
+Next
+
+WScript.Echo "Found " & testFunctions.Count & " test function(s)"
+WScript.Echo ""
+
+If testFunctions.Count = 0 Then
+    WScript.Echo "ERROR: No tests found!"
+    ' テンポラリディレクトリを削除
+    If fso.FolderExists(tempDir) Then
+        fso.DeleteFolder tempDir, True
+    End If
+    WScript.Quit 1
+End If
+
+' ============================================
+' Step 3: 各テストを個別に実行
+' ============================================
+WScript.Echo "========================================="
+WScript.Echo "VBS Test Runner (Isolated Mode)"
+WScript.Echo "========================================="
+WScript.Echo ""
+
+Dim testName, testCode, testFile, testPath, exitCode
+Dim passCount, failCount, errorOutput
+passCount = 0
+failCount = 0
+
+For Each testName In testFunctions.Keys
+    ' テスト用VBSファイルを生成
+    testCode = baseCode & classCode & vbCrLf & _
+               "' === Test Execution ===" & vbCrLf & _
+               "On Error Resume Next" & vbCrLf & _
+               "Call " & testName & "()" & vbCrLf & _
+               "If Err.Number <> 0 Then" & vbCrLf & _
+               "    WScript.Echo ""ERROR: "" & Err.Description" & vbCrLf & _
+               "    WScript.Quit 1" & vbCrLf & _
+               "End If" & vbCrLf & _
+               "WScript.Quit 0" & vbCrLf
+
+    testPath = fso.BuildPath(tempDir, testName & ".vbs")
+    Set testFile = fso.CreateTextFile(testPath, True)
+    testFile.Write testCode
+    testFile.Close
+
+    ' テストを実行
+    Dim exec, output
+    Set exec = shell.Exec("cscript //nologo """ & testPath & """")
+
+    ' 出力を収集
+    output = ""
+    Do While Not exec.StdOut.AtEndOfStream
+        output = output & exec.StdOut.ReadLine() & vbCrLf
+    Loop
+    Do While Not exec.StdErr.AtEndOfStream
+        output = output & exec.StdErr.ReadLine() & vbCrLf
+    Loop
+
+    ' 終了を待機
+    Do While exec.Status = 0
+        WScript.Sleep 50
+    Loop
+
+    exitCode = exec.ExitCode
+
+    If exitCode = 0 Then
         WScript.Echo "[PASS] " & testName
         passCount = passCount + 1
+    Else
+        WScript.Echo "[FAIL] " & testName
+        If Len(Trim(output)) > 0 Then
+            WScript.Echo "       " & Replace(Trim(output), vbCrLf, vbCrLf & "       ")
+        End If
+        failCount = failCount + 1
     End If
-    On Error GoTo 0
 Next
 
 ' ============================================
-' Step 5: 結果サマリー
+' Step 4: クリーンアップと結果サマリー
 ' ============================================
+' テンポラリディレクトリを削除
+If fso.FolderExists(tempDir) Then
+    fso.DeleteFolder tempDir, True
+End If
+
 WScript.Echo ""
 WScript.Echo "========================================="
 WScript.Echo "Results: " & passCount & " passed, " & failCount & " failed"
 WScript.Echo "========================================="
-
-If passCount + failCount = 0 Then
-    WScript.Echo "ERROR: No tests found!"
-    WScript.Quit 1
-End If
 
 If failCount > 0 Then
     WScript.Quit 1
