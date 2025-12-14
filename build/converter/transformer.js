@@ -86,13 +86,23 @@ export function transformVbaToVbs(options) {
  */
 export function applySkipRules(lines, skipRules) {
   const result = [];
-  let skipUntilPattern = null;
+  let currentBlock = null; // { start: pattern, end: pattern }
+  let nestDepth = 0;
 
   for (const line of lines) {
     // Check if we're in a skip block
-    if (skipUntilPattern) {
-      if (new RegExp(skipUntilPattern, 'i').test(line)) {
-        skipUntilPattern = null;
+    if (currentBlock) {
+      // Check for nested block start (same type)
+      if (new RegExp(currentBlock.start, 'i').test(line)) {
+        nestDepth++;
+      }
+      // Check for block end
+      else if (new RegExp(currentBlock.end, 'i').test(line)) {
+        if (nestDepth > 0) {
+          nestDepth--;
+        } else {
+          currentBlock = null;
+        }
       }
       continue;
     }
@@ -101,7 +111,8 @@ export function applySkipRules(lines, skipRules) {
     let shouldSkipBlock = false;
     for (const block of skipRules.blocks) {
       if (new RegExp(block.start, 'i').test(line)) {
-        skipUntilPattern = block.end;
+        currentBlock = block;
+        nestDepth = 0;
         shouldSkipBlock = true;
         break;
       }
