@@ -130,6 +130,25 @@ For Each testName In testFunctions.Keys
     testFile.Write testCode
     testFile.Close
 
+    ' デバッグ: テストファイルの内容を出力（Test_UtilsFailWorksのみ）
+    If testName = "Test_UtilsFailWorks" Then
+        WScript.Echo "=== DEBUG: Test_UtilsFailWorks.vbs (last 50 lines) ==="
+        Dim debugLines, allContent
+        allContent = fso.OpenTextFile(testPath).ReadAll
+        debugLines = Split(allContent, vbCrLf)
+        Dim startLine
+        If UBound(debugLines) > 50 Then
+            startLine = UBound(debugLines) - 50
+        Else
+            startLine = 0
+        End If
+        Dim i
+        For i = startLine To UBound(debugLines)
+            WScript.Echo debugLines(i)
+        Next
+        WScript.Echo "=== END DEBUG ==="
+    End If
+
     ' テストを実行
     Dim exec, output
     Set exec = shell.Exec("cscript //nologo """ & testPath & """")
