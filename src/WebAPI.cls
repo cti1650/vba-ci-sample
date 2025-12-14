@@ -165,18 +165,24 @@ Public Function UrlEncode(ByVal text As String) As String
     Dim i As Long
     Dim c As String
     Dim result As String
+    Dim charCode As Long
 
     result = ""
     For i = 1 To Len(text)
         c = Mid(text, i, 1)
-        Select Case c
-            Case "A" To "Z", "a" To "z", "0" To "9", "-", "_", ".", "~"
-                result = result & c
-            Case " "
-                result = result & "+"
-            Case Else
-                result = result & "%" & Right("0" & Hex(Asc(c)), 2)
-        End Select
+        charCode = Asc(c)
+
+        ' Check if character is unreserved (A-Z, a-z, 0-9, -, _, ., ~)
+        If (charCode >= 65 And charCode <= 90) Or _
+           (charCode >= 97 And charCode <= 122) Or _
+           (charCode >= 48 And charCode <= 57) Or _
+           c = "-" Or c = "_" Or c = "." Or c = "~" Then
+            result = result & c
+        ElseIf c = " " Then
+            result = result & "+"
+        Else
+            result = result & "%" & Right("0" & Hex(charCode), 2)
+        End If
     Next
     UrlEncode = result
 End Function
