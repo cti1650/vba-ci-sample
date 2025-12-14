@@ -75,7 +75,7 @@ End Function
 ' ===========================================
 
 Public Function Request(ByVal method As String, ByVal URL As String, Optional ByVal body As String = "", Optional ByVal headers As Object = Nothing) As String
-    On Error GoTo ErrorHandler
+    On Error Resume Next
 
     ' HTTPオブジェクト作成
     Set http_ = CreateHttpRequest()
@@ -115,6 +115,17 @@ Public Function Request(ByVal method As String, ByVal URL As String, Optional By
         http_.send
     End If
 
+    ' エラーチェック
+    If Err.Number <> 0 Then
+        lastStatus_ = 0
+        lastStatusText_ = "Error: " & Err.Description
+        lastResponseText_ = ""
+        Request = ""
+        Set http_ = Nothing
+        On Error GoTo 0
+        Exit Function
+    End If
+
     ' レスポンス取得
     lastStatus_ = http_.Status
     lastStatusText_ = http_.statusText
@@ -122,14 +133,7 @@ Public Function Request(ByVal method As String, ByVal URL As String, Optional By
     Request = lastResponseText_
 
     Set http_ = Nothing
-    Exit Function
-
-ErrorHandler:
-    lastStatus_ = 0
-    lastStatusText_ = "Error: " & Err.Description
-    lastResponseText_ = ""
-    Request = ""
-    Set http_ = Nothing
+    On Error GoTo 0
 End Function
 
 ' ===========================================
