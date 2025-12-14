@@ -24,6 +24,18 @@
       "description": "User-defined Type definitions (not supported in VBS)",
       "start": "^\\s*(Public\\s+|Private\\s+)?Type\\s+",
       "end": "^\\s*End\\s+Type"
+    },
+    {
+      "name": "utils-writetextfile",
+      "description": "Utils.WriteTextFile function (provided by vba-compat.vbs as UtilsWriteTextFile)",
+      "start": "^\\s*(Public\\s+|Private\\s+)?Sub\\s+WriteTextFile\\s*\\(",
+      "end": "^\\s*End\\s+Sub"
+    },
+    {
+      "name": "utils-fail",
+      "description": "Utils.Fail function (provided by vba-compat.vbs as UtilsFail)",
+      "start": "^\\s*(Public\\s+|Private\\s+)?Sub\\s+Fail\\s*\\(",
+      "end": "^\\s*End\\s+Sub"
     }
   ],
   "lines": [

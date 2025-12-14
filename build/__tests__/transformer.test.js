@@ -8,6 +8,7 @@ import {
   convertEnumRefsToLiterals,
   applyCreateObjectMock,
   trimEmptyLines,
+  removeCommentOnlyLines,
 } from '../converter/transformer.js';
 
 describe('applySkipRules', () => {
@@ -1123,5 +1124,83 @@ describe('nested control structures', () => {
 
       expect(result).toEqual(['Dim x', 'Dim y', 'Dim z']);
     });
+  });
+});
+
+describe('removeCommentOnlyLines', () => {
+  it('should remove lines starting with single quote', () => {
+    const lines = [
+      'Dim x',
+      "' This is a comment",
+      'Dim y',
+    ];
+
+    const result = removeCommentOnlyLines(lines);
+
+    expect(result).toEqual(['Dim x', 'Dim y']);
+  });
+
+  it('should remove lines starting with Rem keyword', () => {
+    const lines = [
+      'Dim x',
+      'Rem This is a comment',
+      'REM Another comment',
+      'Dim y',
+    ];
+
+    const result = removeCommentOnlyLines(lines);
+
+    expect(result).toEqual(['Dim x', 'Dim y']);
+  });
+
+  it('should keep empty lines for readability', () => {
+    const lines = [
+      'Dim x',
+      '',
+      'Dim y',
+    ];
+
+    const result = removeCommentOnlyLines(lines);
+
+    expect(result).toEqual(['Dim x', '', 'Dim y']);
+  });
+
+  it('should keep lines with code followed by comments', () => {
+    const lines = [
+      'Dim x',
+      "Dim y ' inline comment",
+      'Dim z',
+    ];
+
+    const result = removeCommentOnlyLines(lines);
+
+    expect(result).toEqual(['Dim x', "Dim y ' inline comment", 'Dim z']);
+  });
+
+  it('should handle indented comments', () => {
+    const lines = [
+      'Sub Test()',
+      "  ' Indented comment",
+      '  Dim x',
+      '   Rem Another indented comment',
+      '  Dim y',
+      'End Sub',
+    ];
+
+    const result = removeCommentOnlyLines(lines);
+
+    expect(result).toEqual(['Sub Test()', '  Dim x', '  Dim y', 'End Sub']);
+  });
+
+  it('should remove all comment lines from entirely commented code', () => {
+    const lines = [
+      "' First comment",
+      "' Second comment",
+      "' Third comment",
+    ];
+
+    const result = removeCommentOnlyLines(lines);
+
+    expect(result).toEqual([]);
   });
 });

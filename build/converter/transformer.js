@@ -35,6 +35,9 @@ export function transformVbaToVbs(options) {
   // Step 1: Skip blocks and lines
   lines = applySkipRules(lines, skipBlocksRule);
 
+  // Step 1.5: Remove comment-only lines
+  lines = removeCommentOnlyLines(lines);
+
   // Step 2: Apply line-by-line transformations
   lines = lines.map((line) => {
     let transformed = line;
@@ -378,6 +381,30 @@ export function applyCreateObjectMock(line) {
   }
 
   return line;
+}
+
+/**
+ * Remove lines that contain only comments (no actual code)
+ * @param {string[]} lines - Input lines
+ * @returns {string[]} Lines with comment-only lines removed
+ */
+export function removeCommentOnlyLines(lines) {
+  return lines.filter((line) => {
+    const trimmed = line.trim();
+    // Keep empty lines (for readability)
+    if (trimmed === '') {
+      return true;
+    }
+    // Remove lines that start with a comment marker
+    if (trimmed.startsWith("'")) {
+      return false;
+    }
+    // Remove lines that start with Rem (VBA comment keyword)
+    if (/^Rem\s/i.test(trimmed)) {
+      return false;
+    }
+    return true;
+  });
 }
 
 /**
