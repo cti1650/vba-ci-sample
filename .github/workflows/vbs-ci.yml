@@ -49,24 +49,6 @@ jobs:
             Write-Host ""
           }
 
-      - name: Debug - Test single file directly
-        shell: pwsh
-        run: |
-          Write-Host "===== Testing UtilsFail directly ====="
-          $testScript = @'
-          Sub UtilsFail(ByVal code, ByVal message)
-              WScript.Echo "ASSERTION FAILED (" & code & "): " & message
-              WScript.Quit 1
-          End Sub
-
-          UtilsFail 9999, "This should fail"
-          WScript.Quit 0
-          '@
-          $testScript | Out-File -FilePath test_direct.vbs -Encoding ASCII
-          $output = cscript //nologo test_direct.vbs 2>&1
-          Write-Host "Output: $output"
-          Write-Host "Exit code: $LASTEXITCODE"
-
       - name: Run VBS tests
         shell: pwsh
         run: |
