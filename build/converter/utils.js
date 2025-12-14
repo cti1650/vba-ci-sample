@@ -31,41 +31,60 @@ export function getMocksDir() {
  * @param {string} filePath - Path to the file
  * @param {string} encoding - File encoding (default: utf8)
  * @returns {string} File content
+ * @throws {Error} If file cannot be read
  */
 export function readFile(filePath, encoding = 'utf8') {
-  return readFileSync(filePath, { encoding });
+  try {
+    return readFileSync(filePath, { encoding });
+  } catch (error) {
+    throw new Error(`Failed to read file: ${filePath}\n${error.message}`);
+  }
 }
 
 /**
  * Write content to a file (BOM-less UTF-8)
  * @param {string} filePath - Path to the file
  * @param {string} content - Content to write
+ * @throws {Error} If file cannot be written
  */
 export function writeFile(filePath, content) {
-  const dir = dirname(filePath);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
+  try {
+    const dir = dirname(filePath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+    writeFileSync(filePath, content, { encoding: 'utf8' });
+  } catch (error) {
+    throw new Error(`Failed to write file: ${filePath}\n${error.message}`);
   }
-  writeFileSync(filePath, content, { encoding: 'utf8' });
 }
 
 /**
  * Read and parse a JSON file
  * @param {string} filePath - Path to the JSON file
  * @returns {object} Parsed JSON object
+ * @throws {Error} If file cannot be read or parsed
  */
 export function readJson(filePath) {
   const content = readFile(filePath);
-  return JSON.parse(content);
+  try {
+    return JSON.parse(content);
+  } catch (error) {
+    throw new Error(`Failed to parse JSON file: ${filePath}\n${error.message}`);
+  }
 }
 
 /**
  * Load a rule file from the rules directory
  * @param {string} ruleName - Name of the rule file (without .json extension)
  * @returns {object} Parsed rule object
+ * @throws {Error} If rule file cannot be loaded
  */
 export function loadRule(ruleName) {
   const rulePath = join(getRulesDir(), `${ruleName}.json`);
+  if (!existsSync(rulePath)) {
+    throw new Error(`Rule file not found: ${ruleName}.json (expected at ${rulePath})`);
+  }
   return readJson(rulePath);
 }
 
@@ -73,9 +92,13 @@ export function loadRule(ruleName) {
  * Load a mock definition from the mocks directory
  * @param {string} mockName - Name of the mock file (without .json extension)
  * @returns {object} Parsed mock definition
+ * @throws {Error} If mock definition file cannot be loaded
  */
 export function loadMockDefinition(mockName) {
   const mockPath = join(getMocksDir(), `${mockName}.json`);
+  if (!existsSync(mockPath)) {
+    throw new Error(`Mock definition not found: ${mockName}.json (expected at ${mockPath})`);
+  }
   return readJson(mockPath);
 }
 
@@ -84,9 +107,13 @@ export function loadMockDefinition(mockName) {
  * @param {string} category - Template category (classes or helpers)
  * @param {string} templateName - Template file name (without .vbs extension)
  * @returns {string} Template content
+ * @throws {Error} If template file cannot be loaded
  */
 export function loadVbsTemplate(category, templateName) {
   const templatePath = join(getMocksDir(), category, `${templateName}.vbs`);
+  if (!existsSync(templatePath)) {
+    throw new Error(`VBS template not found: ${category}/${templateName}.vbs (expected at ${templatePath})`);
+  }
   return readFile(templatePath);
 }
 

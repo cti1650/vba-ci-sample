@@ -244,6 +244,46 @@ describe('applyEnumConversions', () => {
 
     expect(result).toBe('x = Status_Active');
   });
+
+  it('should NOT convert enum in string literals', () => {
+    const line = 'msg = "Status is Active"';
+
+    const result = applyEnumConversions(line, allEnums, false);
+
+    expect(result).toBe('msg = "Status is Active"');
+  });
+
+  it('should NOT convert enum in comments', () => {
+    const line = "x = 1 ' Status.Active is the default";
+
+    const result = applyEnumConversions(line, allEnums, false);
+
+    expect(result).toBe("x = 1 ' Status.Active is the default");
+  });
+
+  it('should convert enum before comment but not inside', () => {
+    const line = "x = Status.Active ' Set to Active";
+
+    const result = applyEnumConversions(line, allEnums, false);
+
+    expect(result).toBe("x = Status_Active ' Set to Active");
+  });
+
+  it('should NOT convert enum inside string even with code after', () => {
+    const line = 'msg = "Active" : x = Status.Active';
+
+    const result = applyEnumConversions(line, allEnums, false);
+
+    expect(result).toBe('msg = "Active" : x = Status_Active');
+  });
+
+  it('should handle multiple enum references correctly', () => {
+    const line = 'If s = Status.Active And p = Priority.High Then';
+
+    const result = applyEnumConversions(line, allEnums, false);
+
+    expect(result).toBe('If s = Status_Active And p = Priority_High Then');
+  });
 });
 
 describe('convertEnumRefsToLiterals', () => {

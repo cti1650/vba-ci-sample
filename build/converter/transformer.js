@@ -1,4 +1,5 @@
 import { loadRule, splitLines, joinLines } from './utils.js';
+import { collectEnumDefinitions } from './parser.js';
 
 /**
  * Transform VBA content to VBS
@@ -218,7 +219,31 @@ export function applyFunctionRenames(line, renameRules) {
 }
 
 /**
- * Apply enum reference conversions
+ * Check if a position in a line is inside a string literal or comment
+ * @param {string} line - The line to check
+ * @param {number} position - Position in the line
+ * @returns {boolean} True if position is inside string or comment
+ */
+function isInsideStringOrComment(line, position) {
+  // Check if the position is after a comment marker
+  const commentPos = line.indexOf("'");
+  if (commentPos !== -1 && position > commentPos) {
+    return true;
+  }
+
+  // Check if the position is inside a string literal
+  let inString = false;
+  for (let i = 0; i < position && i < line.length; i++) {
+    if (line[i] === '"') {
+      inString = !inString;
+    }
+  }
+
+  return inString;
+}
+
+/**
+ * Apply enum reference conversions (safe: skips strings and comments)
  * @param {string} line - Input line
  * @param {Map<string, Map<string, number>>} allEnums - All enum definitions
  * @param {boolean} isClass - Whether processing a class file
@@ -231,7 +256,7 @@ export function applyEnumConversions(line, allEnums, isClass) {
     for (const [memberName] of members) {
       // Convert EnumName.MemberName -> EnumName_MemberName
       const dotPattern = new RegExp(`\\b${enumName}\\.${memberName}\\b`, 'g');
-      result = result.replace(dotPattern, `${enumName}_${memberName}`);
+      result = safeReplace(result, dotPattern, `${enumName}_${memberName}`);
     }
   }
 
@@ -241,8 +266,50 @@ export function applyEnumConversions(line, allEnums, isClass) {
     for (const [memberName] of members) {
       // Only in assignment context to avoid false positives
       const assignPattern = new RegExp(`=\\s*\\b${memberName}\\b(?!\\s*[.(])`, 'g');
-      result = result.replace(assignPattern, `= ${enumName}_${memberName}`);
+      result = safeReplace(result, assignPattern, `= ${enumName}_${memberName}`, true);
     }
+  }
+
+  return result;
+}
+
+/**
+ * Replace pattern only if not inside string or comment
+ * @param {string} line - Input line
+ * @param {RegExp} pattern - Pattern to match
+ * @param {string} replacement - Replacement string
+ * @param {boolean} preserveSpacing - If true, preserves original spacing around =
+ * @returns {string} Transformed line
+ */
+function safeReplace(line, pattern, replacement, preserveSpacing = false) {
+  let result = line;
+  let match;
+  const regex = new RegExp(pattern.source, 'g');
+
+  // Find all matches and filter out those in strings/comments
+  const matches = [];
+  while ((match = regex.exec(line)) !== null) {
+    if (!isInsideStringOrComment(line, match.index)) {
+      matches.push({
+        index: match.index,
+        length: match[0].length,
+        match: match[0],
+      });
+    }
+  }
+
+  // Replace from end to start to preserve indices
+  for (let i = matches.length - 1; i >= 0; i--) {
+    const m = matches[i];
+    let replaceWith = replacement;
+
+    // For assignment patterns, preserve original spacing
+    if (preserveSpacing && m.match.startsWith('=')) {
+      const originalSpacing = m.match.match(/^=(\s*)/)[1];
+      replaceWith = '=' + originalSpacing + replacement.replace(/^=\s*/, '');
+    }
+
+    result = result.slice(0, m.index) + replaceWith + result.slice(m.index + m.length);
   }
 
   return result;
@@ -336,47 +403,19 @@ export function trimEmptyLines(lines) {
 
 /**
  * Collect local enum definitions from content
+ * Uses collectEnumDefinitions from parser.js and converts to array format
  * @param {string} content - VBA content
  * @returns {Array<{varName: string, value: number}>} Array of enum variable definitions
  */
 export function collectLocalEnumDefs(content) {
   const lines = splitLines(content);
+  const enumMap = collectEnumDefinitions(lines);
+
+  // Convert Map format to array format for backward compatibility
   const result = [];
-  let currentEnumName = '';
-  let inEnum = false;
-  let autoValue = 0;
-
-  for (const line of lines) {
-    const enumStartMatch = line.match(/^\s*(Public\s+|Private\s+)?Enum\s+(\w+)/i);
-    if (enumStartMatch) {
-      inEnum = true;
-      currentEnumName = enumStartMatch[2];
-      autoValue = 0;
-      continue;
-    }
-
-    if (inEnum) {
-      if (/^\s*End\s+Enum/i.test(line)) {
-        inEnum = false;
-        currentEnumName = '';
-        continue;
-      }
-
-      const memberWithValueMatch = line.match(/^\s*(\w+)\s*=\s*(-?\d+)/);
-      if (memberWithValueMatch) {
-        const varName = `${currentEnumName}_${memberWithValueMatch[1]}`;
-        const value = parseInt(memberWithValueMatch[2], 10);
-        result.push({ varName, value });
-        autoValue = value + 1;
-        continue;
-      }
-
-      const memberOnlyMatch = line.match(/^\s*(\w+)\s*$/);
-      if (memberOnlyMatch && memberOnlyMatch[1] !== '') {
-        const varName = `${currentEnumName}_${memberOnlyMatch[1]}`;
-        result.push({ varName, value: autoValue });
-        autoValue++;
-      }
+  for (const [enumName, members] of enumMap) {
+    for (const [memberName, value] of members) {
+      result.push({ varName: `${enumName}_${memberName}`, value });
     }
   }
 
