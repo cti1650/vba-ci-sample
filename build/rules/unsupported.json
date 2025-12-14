@@ -1,0 +1,110 @@
+{
+  "description": "VBS unsupported syntax - lines to comment out with warnings",
+  "commentOut": [
+    {
+      "name": "gosub",
+      "pattern": "^\\s*GoSub\\s+",
+      "prefix": "' [VBS UNSUPPORTED] ",
+      "description": "GoSub not supported in VBS"
+    },
+    {
+      "name": "return-statement",
+      "pattern": "^\\s*Return\\s*$",
+      "prefix": "' [VBS UNSUPPORTED] ",
+      "description": "Return (from GoSub) not supported"
+    },
+    {
+      "name": "line-input",
+      "pattern": "^\\s*Line\\s+Input\\s+#",
+      "prefix": "' [VBS UNSUPPORTED] ",
+      "description": "Line Input # not supported"
+    },
+    {
+      "name": "open-for",
+      "pattern": "^\\s*Open\\s+.*\\s+For\\s+(Input|Output|Append|Binary|Random)\\s+",
+      "prefix": "' [VBS UNSUPPORTED] ",
+      "description": "Open For not supported (use FSO)"
+    },
+    {
+      "name": "close-hash",
+      "pattern": "^\\s*Close\\s+#",
+      "prefix": "' [VBS UNSUPPORTED] ",
+      "description": "Close # not supported"
+    },
+    {
+      "name": "print-hash",
+      "pattern": "^\\s*Print\\s+#",
+      "prefix": "' [VBS UNSUPPORTED] ",
+      "description": "Print # not supported"
+    },
+    {
+      "name": "write-hash",
+      "pattern": "^\\s*Write\\s+#",
+      "prefix": "' [VBS UNSUPPORTED] ",
+      "description": "Write # not supported"
+    },
+    {
+      "name": "input-hash",
+      "pattern": "^\\s*Input\\s+#",
+      "prefix": "' [VBS UNSUPPORTED] ",
+      "description": "Input # not supported"
+    },
+    {
+      "name": "get-hash",
+      "pattern": "^\\s*Get\\s+#",
+      "prefix": "' [VBS UNSUPPORTED] ",
+      "description": "Get # (binary I/O) not supported"
+    },
+    {
+      "name": "put-hash",
+      "pattern": "^\\s*Put\\s+#",
+      "prefix": "' [VBS UNSUPPORTED] ",
+      "description": "Put # (binary I/O) not supported"
+    },
+    {
+      "name": "seek-hash",
+      "pattern": "^\\s*Seek\\s+#",
+      "prefix": "' [VBS UNSUPPORTED] ",
+      "description": "Seek # not supported"
+    },
+    {
+      "name": "resume-next-standalone",
+      "pattern": "^\\s*Resume\\s+Next\\s*$",
+      "prefix": "' [VBS: Resume Next removed] ",
+      "description": "Standalone Resume Next"
+    },
+    {
+      "name": "resume-label",
+      "pattern": "^\\s*Resume\\s+\\w+\\s*$",
+      "excludePattern": "^\\s*Resume\\s+Next",
+      "prefix": "' [VBS UNSUPPORTED: Resume label] ",
+      "description": "Resume to label not supported"
+    },
+    {
+      "name": "resume-bare",
+      "pattern": "^\\s*Resume\\s*$",
+      "prefix": "' [VBS UNSUPPORTED: Resume] ",
+      "description": "Bare Resume not supported"
+    }
+  ],
+  "warnings": [
+    {
+      "name": "lset",
+      "pattern": "\\bLSet\\s+",
+      "prefix": "' [VBS WARNING: LSet needs manual conversion] ",
+      "description": "LSet requires manual conversion"
+    },
+    {
+      "name": "rset",
+      "pattern": "\\bRSet\\s+",
+      "prefix": "' [VBS WARNING: RSet needs manual conversion] ",
+      "description": "RSet requires manual conversion"
+    },
+    {
+      "name": "addressof",
+      "pattern": "\\bAddressOf\\s+",
+      "prefix": "' [VBS UNSUPPORTED: AddressOf] ",
+      "description": "AddressOf not supported"
+    }
+  ]
+}

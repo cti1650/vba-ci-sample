@@ -20,5 +20,10 @@ C:\temp\
 # PowerShell
 *.ps1xml
 
+# Node.js
+node_modules/
+build/node_modules/
+
 # Generated VBS files (auto-converted from VBA)
 build/vbs/generated/
+build/vbs/vba-compat.vbs

@@ -1,0 +1,76 @@
+{
+  "description": "Blocks and lines to skip during VBA to VBS conversion",
+  "blocks": [
+    {
+      "name": "vba-class-header",
+      "description": "VERSION 1.0 CLASS header block",
+      "start": "^VERSION\\s+\\d+\\.\\d+\\s+CLASS",
+      "end": "^END$"
+    },
+    {
+      "name": "conditional-compilation",
+      "description": "#If/#End If conditional compilation blocks",
+      "start": "^\\s*#If\\s+",
+      "end": "^\\s*#End\\s+If"
+    },
+    {
+      "name": "enum-block",
+      "description": "Enum definitions (handled separately)",
+      "start": "^\\s*(Public\\s+|Private\\s+)?Enum\\s+",
+      "end": "^\\s*End\\s+Enum"
+    },
+    {
+      "name": "type-block",
+      "description": "User-defined Type definitions (not supported in VBS)",
+      "start": "^\\s*(Public\\s+|Private\\s+)?Type\\s+",
+      "end": "^\\s*End\\s+Type"
+    }
+  ],
+  "lines": [
+    {
+      "name": "attribute",
+      "description": "VB Attribute statements",
+      "pattern": "^\\s*Attribute\\s+VB_"
+    },
+    {
+      "name": "option-explicit",
+      "description": "Option Explicit statement",
+      "pattern": "^\\s*Option\\s+Explicit"
+    },
+    {
+      "name": "option-other",
+      "description": "Option Compare, Base, Private statements",
+      "pattern": "^\\s*Option\\s+(Compare|Base|Private)"
+    },
+    {
+      "name": "const-directive",
+      "description": "#Const directive",
+      "pattern": "^\\s*#Const\\s+"
+    },
+    {
+      "name": "def-type",
+      "description": "DefInt, DefLng, DefStr, etc.",
+      "pattern": "^\\s*Def(Int|Lng|Str|Bool|Byte|Cur|Date|Dbl|Sng|Var|Obj)\\s+"
+    },
+    {
+      "name": "implements",
+      "description": "Implements statement (no interfaces in VBS)",
+      "pattern": "^\\s*Implements\\s+"
+    },
+    {
+      "name": "declare",
+      "description": "API Declare statements (handled separately)",
+      "pattern": "^\\s*(Public\\s+|Private\\s+)?Declare\\s+(PtrSafe\\s+)?(Function|Sub)\\s+"
+    },
+    {
+      "name": "event-declaration",
+      "description": "Event declarations (no events in VBS)",
+      "pattern": "^\\s*(Public\\s+|Private\\s+)?Event\\s+"
+    },
+    {
+      "name": "raise-event",
+      "description": "RaiseEvent statements",
+      "pattern": "^\\s*RaiseEvent\\s+"
+    }
+  ]
+}

@@ -1,0 +1,243 @@
+{
+  "description": "VBA function mocks for VBS compatibility",
+  "functions": [
+    {
+      "name": "DebugPrint",
+      "type": "sub",
+      "params": [{"name": "msg", "byval": true}],
+      "body": "WScript.Echo msg"
+    },
+    {
+      "name": "FreeFile",
+      "type": "function",
+      "params": [],
+      "body": "FreeFile = 0"
+    },
+    {
+      "name": "DoEvents",
+      "type": "sub",
+      "params": [],
+      "body": "' No-op"
+    },
+    {
+      "name": "IsMissing",
+      "type": "function",
+      "params": [{"name": "arg", "byval": true}],
+      "body": "IsMissing = IsEmpty(arg)"
+    },
+    {
+      "name": "CLngPtr",
+      "type": "function",
+      "params": [{"name": "value", "byval": true}],
+      "body": "CLngPtr = CLng(value)"
+    },
+    {
+      "name": "CVErr",
+      "type": "function",
+      "params": [{"name": "errNum", "byval": true}],
+      "body": "CVErr = 0"
+    },
+    {
+      "name": "Environ",
+      "type": "function",
+      "params": [{"name": "name", "byval": true}],
+      "body": "Dim shell\nSet shell = CreateObject(\"WScript.Shell\")\nEnviron = shell.ExpandEnvironmentStrings(\"%\" & name & \"%\")\nIf Environ = \"%\" & name & \"%\" Then Environ = \"\""
+    },
+    {
+      "name": "Timer",
+      "type": "function",
+      "params": [],
+      "body": "Timer = CDbl(Hour(Now) * 3600 + Minute(Now) * 60 + Second(Now))"
+    },
+    {
+      "name": "Sleep",
+      "type": "sub",
+      "params": [{"name": "milliseconds", "byval": true}],
+      "body": "WScript.Sleep milliseconds"
+    },
+    {
+      "name": "Dir",
+      "type": "function",
+      "params": [{"name": "pathname", "byval": true}],
+      "body": "If fso_compat.FileExists(pathname) Then\n    Dir = fso_compat.GetFileName(pathname)\nElseIf fso_compat.FolderExists(pathname) Then\n    Dir = fso_compat.GetFileName(pathname)\nElse\n    Dir = \"\"\nEnd If"
+    },
+    {
+      "name": "CurDir",
+      "type": "function",
+      "params": [],
+      "body": "Dim shell\nSet shell = CreateObject(\"WScript.Shell\")\nCurDir = shell.CurrentDirectory"
+    },
+    {
+      "name": "ChDir",
+      "type": "sub",
+      "params": [{"name": "path", "byval": true}],
+      "body": "Dim shell\nSet shell = CreateObject(\"WScript.Shell\")\nshell.CurrentDirectory = path"
+    },
+    {
+      "name": "Kill",
+      "type": "sub",
+      "params": [{"name": "pathname", "byval": true}],
+      "body": "If fso_compat.FileExists(pathname) Then fso_compat.DeleteFile pathname, True"
+    },
+    {
+      "name": "MkDir",
+      "type": "sub",
+      "params": [{"name": "path", "byval": true}],
+      "body": "If Not fso_compat.FolderExists(path) Then fso_compat.CreateFolder path"
+    },
+    {
+      "name": "RmDir",
+      "type": "sub",
+      "params": [{"name": "path", "byval": true}],
+      "body": "If fso_compat.FolderExists(path) Then fso_compat.DeleteFolder path, True"
+    },
+    {
+      "name": "FileCopy",
+      "type": "sub",
+      "params": [{"name": "source", "byval": true}, {"name": "destination", "byval": true}],
+      "body": "fso_compat.CopyFile source, destination, True"
+    },
+    {
+      "name": "FileLen",
+      "type": "function",
+      "params": [{"name": "pathname", "byval": true}],
+      "body": "If fso_compat.FileExists(pathname) Then\n    FileLen = fso_compat.GetFile(pathname).Size\nElse\n    FileLen = 0\nEnd If"
+    },
+    {
+      "name": "GetAttr",
+      "type": "function",
+      "params": [{"name": "pathname", "byval": true}],
+      "body": "If fso_compat.FileExists(pathname) Then\n    GetAttr = fso_compat.GetFile(pathname).Attributes\nElseIf fso_compat.FolderExists(pathname) Then\n    GetAttr = fso_compat.GetFolder(pathname).Attributes\nElse\n    GetAttr = 0\nEnd If"
+    },
+    {
+      "name": "Sgn",
+      "type": "function",
+      "params": [{"name": "number", "byval": true}],
+      "body": "If number > 0 Then\n    Sgn = 1\nElseIf number < 0 Then\n    Sgn = -1\nElse\n    Sgn = 0\nEnd If"
+    },
+    {
+      "name": "Fix",
+      "type": "function",
+      "params": [{"name": "number", "byval": true}],
+      "body": "If number >= 0 Then\n    Fix = Int(number)\nElse\n    Fix = -Int(-number)\nEnd If"
+    },
+    {
+      "name": "StrReverse",
+      "type": "function",
+      "params": [{"name": "str", "byval": true}],
+      "body": "Dim i, result\nresult = \"\"\nFor i = Len(str) To 1 Step -1\n    result = result & Mid(str, i, 1)\nNext\nStrReverse = result"
+    },
+    {
+      "name": "Val",
+      "type": "function",
+      "params": [{"name": "str", "byval": true}],
+      "body": "Dim result, i, c, started, hasDecimal\nresult = \"\"\nstarted = False\nhasDecimal = False\nstr = Trim(str)\nFor i = 1 To Len(str)\n    c = Mid(str, i, 1)\n    If c >= \"0\" And c <= \"9\" Then\n        result = result & c\n        started = True\n    ElseIf c = \"-\" And Not started Then\n        result = result & c\n    ElseIf c = \"+\" And Not started Then\n        ' Skip\n    ElseIf c = \".\" And Not hasDecimal Then\n        result = result & c\n        hasDecimal = True\n        started = True\n    ElseIf c = \" \" And Not started Then\n        ' Skip leading spaces\n    Else\n        Exit For\n    End If\nNext\nIf result = \"\" Or result = \"-\" Or result = \".\" Then\n    Val = 0\nElse\n    Val = CDbl(result)\nEnd If"
+    },
+    {
+      "name": "Nz",
+      "type": "function",
+      "params": [{"name": "value", "byval": true}, {"name": "valueIfNull", "byval": true}],
+      "body": "If IsNull(value) Or IsEmpty(value) Then\n    Nz = valueIfNull\nElse\n    Nz = value\nEnd If"
+    },
+    {
+      "name": "GetTempPath",
+      "type": "function",
+      "params": [],
+      "body": "Dim shell\nSet shell = CreateObject(\"WScript.Shell\")\nGetTempPath = shell.ExpandEnvironmentStrings(\"%TEMP%\")\nIf Right(GetTempPath, 1) <> \"\\\" Then GetTempPath = GetTempPath & \"\\\""
+    },
+    {
+      "name": "MsgBoxCI",
+      "type": "function",
+      "params": [{"name": "prompt", "byval": true}, {"name": "buttons", "byval": true}, {"name": "title", "byval": true}],
+      "body": "DebugPrint \"[MsgBox] \" & title & \": \" & prompt\nMsgBoxCI = 1"
+    },
+    {
+      "name": "InputBoxCI",
+      "type": "function",
+      "params": [{"name": "prompt", "byval": true}, {"name": "title", "byval": true}, {"name": "default", "byval": true}],
+      "body": "DebugPrint \"[InputBox] \" & title & \": \" & prompt\nInputBoxCI = default"
+    }
+  ],
+  "helpers": [
+    {
+      "name": "CreateCollection",
+      "type": "function",
+      "params": [],
+      "body": "Set CreateCollection = New Collection"
+    },
+    {
+      "name": "WriteTextFile",
+      "type": "sub",
+      "params": [{"name": "path", "byval": true}, {"name": "text", "byval": true}],
+      "body": "Dim f\nSet f = fso_compat.CreateTextFile(path, True)\nf.Write text\nf.Close"
+    },
+    {
+      "name": "ReadTextFile",
+      "type": "function",
+      "params": [{"name": "path", "byval": true}],
+      "body": "If fso_compat.FileExists(path) Then\n    Dim f\n    Set f = fso_compat.OpenTextFile(path, 1)\n    If f.AtEndOfStream Then\n        ReadTextFile = \"\"\n    Else\n        ReadTextFile = f.ReadAll\n    End If\n    f.Close\nElse\n    ReadTextFile = \"\"\nEnd If"
+    },
+    {
+      "name": "FileExists",
+      "type": "function",
+      "params": [{"name": "path", "byval": true}],
+      "body": "FileExists = fso_compat.FileExists(path)"
+    },
+    {
+      "name": "FolderExists",
+      "type": "function",
+      "params": [{"name": "path", "byval": true}],
+      "body": "FolderExists = fso_compat.FolderExists(path)"
+    },
+    {
+      "name": "UtilsFail",
+      "type": "sub",
+      "params": [{"name": "code", "byval": true}, {"name": "message", "byval": true}],
+      "body": "Err.Raise code, \"VBA_TEST\", message"
+    },
+    {
+      "name": "UtilsWriteTextFile",
+      "type": "sub",
+      "params": [{"name": "path", "byval": true}, {"name": "text", "byval": true}],
+      "body": "WriteTextFile path, text"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "Assert",
+      "type": "sub",
+      "params": [{"name": "condition", "byval": true}, {"name": "message", "byval": true}],
+      "body": "If Not condition Then Err.Raise 9999, \"Assert\", \"Assertion failed: \" & message"
+    },
+    {
+      "name": "AssertEqual",
+      "type": "sub",
+      "params": [{"name": "expected", "byval": true}, {"name": "actual", "byval": true}, {"name": "message", "byval": true}],
+      "body": "If expected <> actual Then Err.Raise 9999, \"AssertEqual\", message & \" - Expected: \" & CStr(expected) & \", Actual: \" & CStr(actual)"
+    },
+    {
+      "name": "AssertTrue",
+      "type": "sub",
+      "params": [{"name": "condition", "byval": true}, {"name": "message", "byval": true}],
+      "body": "Assert condition, message"
+    },
+    {
+      "name": "AssertFalse",
+      "type": "sub",
+      "params": [{"name": "condition", "byval": true}, {"name": "message", "byval": true}],
+      "body": "Assert Not condition, message"
+    },
+    {
+      "name": "AssertNothing",
+      "type": "sub",
+      "params": [{"name": "obj", "byval": true}, {"name": "message", "byval": true}],
+      "body": "If Not obj Is Nothing Then Err.Raise 9999, \"AssertNothing\", message & \" - Object is not Nothing\""
+    },
+    {
+      "name": "AssertNotNothing",
+      "type": "sub",
+      "params": [{"name": "obj", "byval": true}, {"name": "message", "byval": true}],
+      "body": "If obj Is Nothing Then Err.Raise 9999, \"AssertNotNothing\", message & \" - Object is Nothing\""
+    }
+  ]
+}

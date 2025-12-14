@@ -1,0 +1,23 @@
+{
+  "name": "vba-to-vbs-converter",
+  "version": "1.0.0",
+  "description": "VBA to VBS converter with JSON-based rule management",
+  "type": "module",
+  "main": "converter/index.js",
+  "scripts": {
+    "convert": "node converter/index.js",
+    "generate-mocks": "node converter/mock-generator.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "glob": "^11.0.0",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
