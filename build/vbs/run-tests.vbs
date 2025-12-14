@@ -132,20 +132,19 @@ For Each testName In testFunctions.Keys
 
     ' デバッグ: テストファイルの内容を出力（Test_UtilsFailWorksのみ）
     If testName = "Test_UtilsFailWorks" Then
-        WScript.Echo "=== DEBUG: Test_UtilsFailWorks.vbs (last 50 lines) ==="
-        Dim debugLines, allContent
+        WScript.Echo "=== DEBUG: Checking for UtilsFail in test file ==="
+        Dim allContent
         allContent = fso.OpenTextFile(testPath).ReadAll
-        debugLines = Split(allContent, vbCrLf)
-        Dim startLine
-        If UBound(debugLines) > 50 Then
-            startLine = UBound(debugLines) - 50
+        If InStr(allContent, "Sub UtilsFail") > 0 Then
+            WScript.Echo "[OK] UtilsFail is defined in test file"
         Else
-            startLine = 0
+            WScript.Echo "[ERROR] UtilsFail is NOT defined in test file!"
         End If
-        Dim i
-        For i = startLine To UBound(debugLines)
-            WScript.Echo debugLines(i)
-        Next
+        If InStr(allContent, "WScript.Quit 1") > 0 Then
+            WScript.Echo "[OK] WScript.Quit 1 is in test file"
+        Else
+            WScript.Echo "[ERROR] WScript.Quit 1 is NOT in test file!"
+        End If
         WScript.Echo "=== END DEBUG ==="
     End If
 
