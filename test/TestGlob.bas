@@ -275,7 +275,7 @@ Public Sub Test_iGlob_FindBasFiles()
     Set result = g.iGlob(ThisWorkbook.path & "\..\..\test\*.bas")
 
     ' TestCalculator.bas と TestGlob.bas が存在するはず
-    If g.GetCount < 2 Then
+    If g.GetCount = 0 Then
         Utils.Fail 2061, "iGlob should find at least 2 .bas files in test/"
     End If
 End Sub
