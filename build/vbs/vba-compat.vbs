@@ -200,34 +200,34 @@ Function CreateCollection()
     Set CreateCollection = New Collection
 End Function
 
-Sub WriteTextFile(ByVal path, ByVal text)
+Sub Compat_WriteTextFile(ByVal path, ByVal text)
     Dim f
     Set f = fso_compat.CreateTextFile(path, True)
     f.Write text
     f.Close
 End Sub
 
-Function ReadTextFile(ByVal path)
+Function Compat_ReadTextFile(ByVal path)
     If fso_compat.FileExists(path) Then
         Dim f
         Set f = fso_compat.OpenTextFile(path, 1)
         If f.AtEndOfStream Then
-            ReadTextFile = ""
+            Compat_ReadTextFile = ""
         Else
-            ReadTextFile = f.ReadAll
+            Compat_ReadTextFile = f.ReadAll
         End If
         f.Close
     Else
-        ReadTextFile = ""
+        Compat_ReadTextFile = ""
     End If
 End Function
 
-Function FileExists(ByVal path)
-    FileExists = fso_compat.FileExists(path)
+Function Compat_FileExists(ByVal path)
+    Compat_FileExists = fso_compat.FileExists(path)
 End Function
 
-Function FolderExists(ByVal path)
-    FolderExists = fso_compat.FolderExists(path)
+Function Compat_FolderExists(ByVal path)
+    Compat_FolderExists = fso_compat.FolderExists(path)
 End Function
 
 Sub UtilsFail(ByVal code, ByVal message)
@@ -235,7 +235,7 @@ Sub UtilsFail(ByVal code, ByVal message)
 End Sub
 
 Sub UtilsWriteTextFile(ByVal path, ByVal text)
-    WriteTextFile path, text
+    Compat_WriteTextFile path, text
 End Sub
 
 ' ============================================

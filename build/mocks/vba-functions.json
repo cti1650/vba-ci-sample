@@ -166,28 +166,28 @@
       "body": "Set CreateCollection = New Collection"
     },
     {
-      "name": "WriteTextFile",
+      "name": "Compat_WriteTextFile",
       "type": "sub",
       "params": [{"name": "path", "byval": true}, {"name": "text", "byval": true}],
       "body": "Dim f\nSet f = fso_compat.CreateTextFile(path, True)\nf.Write text\nf.Close"
     },
     {
-      "name": "ReadTextFile",
+      "name": "Compat_ReadTextFile",
       "type": "function",
       "params": [{"name": "path", "byval": true}],
-      "body": "If fso_compat.FileExists(path) Then\n    Dim f\n    Set f = fso_compat.OpenTextFile(path, 1)\n    If f.AtEndOfStream Then\n        ReadTextFile = \"\"\n    Else\n        ReadTextFile = f.ReadAll\n    End If\n    f.Close\nElse\n    ReadTextFile = \"\"\nEnd If"
+      "body": "If fso_compat.FileExists(path) Then\n    Dim f\n    Set f = fso_compat.OpenTextFile(path, 1)\n    If f.AtEndOfStream Then\n        Compat_ReadTextFile = \"\"\n    Else\n        Compat_ReadTextFile = f.ReadAll\n    End If\n    f.Close\nElse\n    Compat_ReadTextFile = \"\"\nEnd If"
     },
     {
-      "name": "FileExists",
+      "name": "Compat_FileExists",
       "type": "function",
       "params": [{"name": "path", "byval": true}],
-      "body": "FileExists = fso_compat.FileExists(path)"
+      "body": "Compat_FileExists = fso_compat.FileExists(path)"
     },
     {
-      "name": "FolderExists",
+      "name": "Compat_FolderExists",
       "type": "function",
       "params": [{"name": "path", "byval": true}],
-      "body": "FolderExists = fso_compat.FolderExists(path)"
+      "body": "Compat_FolderExists = fso_compat.FolderExists(path)"
     },
     {
       "name": "UtilsFail",
@@ -199,7 +199,7 @@
       "name": "UtilsWriteTextFile",
       "type": "sub",
       "params": [{"name": "path", "byval": true}, {"name": "text", "byval": true}],
-      "body": "WriteTextFile path, text"
+      "body": "Compat_WriteTextFile path, text"
     }
   ],
   "assertions": [
