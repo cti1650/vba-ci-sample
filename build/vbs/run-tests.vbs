@@ -121,10 +121,16 @@ For Each testName In testFunctions.Keys
     ' テスト用VBSファイルを生成
     testCode = baseCode & classCode & vbCrLf & _
                "' === Test Execution ===" & vbCrLf & _
+               "Dim testErrNum, testErrDesc" & vbCrLf & _
+               "testErrNum = 0" & vbCrLf & _
+               "testErrDesc = """"" & vbCrLf & _
                "On Error Resume Next" & vbCrLf & _
                "Call " & testName & "()" & vbCrLf & _
-               "If Err.Number <> 0 Then" & vbCrLf & _
-               "    WScript.Echo ""ERROR: "" & Err.Description" & vbCrLf & _
+               "testErrNum = Err.Number" & vbCrLf & _
+               "testErrDesc = Err.Description" & vbCrLf & _
+               "On Error GoTo 0" & vbCrLf & _
+               "If testErrNum <> 0 Then" & vbCrLf & _
+               "    WScript.Echo ""ERROR ("" & testErrNum & ""): "" & testErrDesc" & vbCrLf & _
                "    WScript.Quit 1" & vbCrLf & _
                "End If" & vbCrLf & _
                "WScript.Quit 0" & vbCrLf

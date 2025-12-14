@@ -193,7 +193,7 @@
       "name": "UtilsFail",
       "type": "sub",
       "params": [{"name": "code", "byval": true}, {"name": "message", "byval": true}],
-      "body": "Err.Raise code, \"VBA_TEST\", message"
+      "body": "WScript.Echo \"ASSERTION FAILED (\" & code & \"): \" & message\n    WScript.Quit 1"
     },
     {
       "name": "UtilsWriteTextFile",
@@ -207,13 +207,13 @@
       "name": "Assert",
       "type": "sub",
       "params": [{"name": "condition", "byval": true}, {"name": "message", "byval": true}],
-      "body": "If Not condition Then Err.Raise 9999, \"Assert\", \"Assertion failed: \" & message"
+      "body": "If Not condition Then\n        WScript.Echo \"ASSERTION FAILED: \" & message\n        WScript.Quit 1\n    End If"
     },
     {
       "name": "AssertEqual",
       "type": "sub",
       "params": [{"name": "expected", "byval": true}, {"name": "actual", "byval": true}, {"name": "message", "byval": true}],
-      "body": "If expected <> actual Then Err.Raise 9999, \"AssertEqual\", message & \" - Expected: \" & CStr(expected) & \", Actual: \" & CStr(actual)"
+      "body": "If expected <> actual Then\n        WScript.Echo \"ASSERTION FAILED: \" & message & \" - Expected: \" & CStr(expected) & \", Actual: \" & CStr(actual)\n        WScript.Quit 1\n    End If"
     },
     {
       "name": "AssertTrue",
@@ -231,13 +231,13 @@
       "name": "AssertNothing",
       "type": "sub",
       "params": [{"name": "obj", "byval": true}, {"name": "message", "byval": true}],
-      "body": "If Not obj Is Nothing Then Err.Raise 9999, \"AssertNothing\", message & \" - Object is not Nothing\""
+      "body": "If Not obj Is Nothing Then\n        WScript.Echo \"ASSERTION FAILED: \" & message & \" - Object is not Nothing\"\n        WScript.Quit 1\n    End If"
     },
     {
       "name": "AssertNotNothing",
       "type": "sub",
       "params": [{"name": "obj", "byval": true}, {"name": "message", "byval": true}],
-      "body": "If obj Is Nothing Then Err.Raise 9999, \"AssertNotNothing\", message & \" - Object is Nothing\""
+      "body": "If obj Is Nothing Then\n        WScript.Echo \"ASSERTION FAILED: \" & message & \" - Object is Nothing\"\n        WScript.Quit 1\n    End If"
     }
   ]
 }
