@@ -36,6 +36,18 @@
       "description": "Utils.Fail function (provided by vba-compat.vbs as UtilsFail)",
       "start": "^\\s*(Public\\s+|Private\\s+)?Sub\\s+Fail\\s*\\(",
       "end": "^\\s*End\\s+Sub"
+    },
+    {
+      "name": "glob-class-glob-function",
+      "description": "Skip Glob.Glob function (VBS cannot have same-name method in class)",
+      "start": "^\\s*Public\\s+Function\\s+Glob\\s*\\(",
+      "end": "^\\s*End\\s+Function"
+    },
+    {
+      "name": "glob-class-globfolder-function",
+      "description": "Skip Glob.GlobFolder function (uses Glob internally)",
+      "start": "^\\s*Public\\s+Function\\s+GlobFolder\\s*\\(",
+      "end": "^\\s*End\\s+Function"
     }
   ],
   "lines": [
