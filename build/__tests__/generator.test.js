@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { sep } from 'path';
 import { generateEnumsFile, generateSummary, printSummary } from '../converter/generator.js';
 
 // Mock utils
@@ -7,6 +8,9 @@ vi.mock('../converter/utils.js', () => ({
   joinLines: (lines) => lines.join('\r\n'),
   normalizeCrlf: (content) => content.replace(/\r?\n/g, '\r\n'),
 }));
+
+// Normalize path separators for cross-platform testing
+const normalizePath = (p) => p.replace(/[\\/]/g, '/');
 
 describe('generateEnumsFile', () => {
   beforeEach(() => {
@@ -28,13 +32,14 @@ describe('generateEnumsFile', () => {
 
     const result = generateEnumsFile('/output', allEnums);
 
-    expect(result).toBe('/output/_enums.vbs');
+    // Normalize paths for cross-platform compatibility
+    expect(normalizePath(result)).toBe('/output/_enums.vbs');
     expect(writeFile).toHaveBeenCalledWith(
-      '/output/_enums.vbs',
+      expect.stringMatching(/[\/\\]output[\/\\]_enums\.vbs$/),
       expect.stringContaining('Status_Active = 1')
     );
     expect(writeFile).toHaveBeenCalledWith(
-      '/output/_enums.vbs',
+      expect.stringMatching(/[\/\\]output[\/\\]_enums\.vbs$/),
       expect.stringContaining('Priority_High = 1')
     );
   });
