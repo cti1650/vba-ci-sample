@@ -1,4 +1,4 @@
-.PHONY: help install test test-converter test-vbs test-vbs-docker convert clean docker-build docker-test docker-clean
+.PHONY: help install test test-converter test-vbs convert clean docker-build docker-test docker-clean
 
 # Default target
 help:
@@ -6,16 +6,19 @@ help:
 	@echo ""
 	@echo "Usage:"
 	@echo "  make install        - Install Node.js dependencies"
-	@echo "  make test           - Run all tests (converter only on non-Windows)"
+	@echo "  make test           - Run converter tests + convert (VBS tests on Windows only)"
 	@echo "  make test-converter - Run Node.js converter tests"
 	@echo "  make test-vbs       - Run VBS tests (Windows only)"
 	@echo "  make convert        - Convert VBA to VBS"
 	@echo "  make clean          - Clean generated files"
 	@echo ""
-	@echo "Docker commands:"
-	@echo "  make docker-build   - Build Docker image for VBS testing"
-	@echo "  make docker-test    - Run tests in Docker container"
+	@echo "Docker commands (for cross-platform converter testing):"
+	@echo "  make docker-build   - Build Docker image"
+	@echo "  make docker-test    - Run converter tests in Docker"
 	@echo "  make docker-clean   - Remove Docker containers and images"
+	@echo ""
+	@echo "Note: VBS tests require real Windows (GitHub Actions or local Windows)."
+	@echo "      Wine on ARM64 macOS/Linux cannot run cscript reliably."
 	@echo ""
 
 # Install dependencies
@@ -35,39 +38,31 @@ test-vbs:
 ifeq ($(OS),Windows_NT)
 	cscript //nologo build/vbs/run-tests.vbs
 else
-	@echo "VBS tests require Windows. Use 'make docker-test' for Wine-based testing."
+	@echo "ERROR: VBS tests require Windows."
+	@echo "Use GitHub Actions or run on a Windows machine."
 	@exit 1
 endif
 
-# Run VBS tests inside Docker (using Wine)
-test-vbs-docker:
-	cd build && npm ci
-	node build/converter/index.js --input ./src ./test --output ./build/vbs/generated
-	wine cscript //nologo build/vbs/run-tests.vbs
-
-# Run all tests
-test: test-converter
+# Run all tests (converter + convert, VBS only on Windows)
+test: test-converter convert
 ifeq ($(OS),Windows_NT)
-	$(MAKE) convert
 	$(MAKE) test-vbs
+else
+	@echo ""
+	@echo "Converter tests passed. VBS tests skipped (requires Windows)."
+	@echo "Push to GitHub to run full CI with VBS tests."
 endif
-
-# Full test in Docker
-test-all: test-converter convert test-vbs-docker
 
 # Clean generated files
 clean:
 	rm -rf build/vbs/generated/*
 	rm -f build/vbs/vba-compat.vbs
 
-# Docker commands
+# Docker commands (for converter tests only - VBS needs real Windows)
 docker-build:
-	docker compose build vbs-test
+	docker compose build converter-test
 
 docker-test:
-	docker compose run --rm vbs-test make test-all
-
-docker-converter-test:
 	docker compose run --rm converter-test
 
 docker-clean:
