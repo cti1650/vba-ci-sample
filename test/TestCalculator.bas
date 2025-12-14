@@ -1,12 +1,6 @@
 Attribute VB_Name = "TestCalculator"
 Option Explicit
 
-' このテストは意図的に失敗するテストです（Utils.Failの動作確認用）
-Public Sub Test_UtilsFailWorks()
-  ' 必ず失敗する条件
-  Utils.Fail 9999, "This test intentionally fails to verify Utils.Fail works"
-End Sub
-
 Public Sub Test_Add()
   Dim c As Calculator
   Set c = New Calculator
