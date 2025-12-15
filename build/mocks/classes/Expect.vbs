@@ -22,8 +22,15 @@ Class Expectation
     End Property
 
     Private Sub Fail(ByVal assertionType, ByVal expected, ByVal showDiff)
+        Dim notStr
+        If negated_ Then
+            notStr = " not "
+        Else
+            notStr = " "
+        End If
+
         WScript.Echo ""
-        WScript.Echo "AssertionError: expected " & FormatValue(actual_) & IIf(negated_, " not ", " ") & assertionType
+        WScript.Echo "AssertionError: expected " & FormatValue(actual_) & notStr & assertionType
         If showDiff Then
             WScript.Echo "  - Expected: " & FormatValue(expected)
             WScript.Echo "  + Received: " & FormatValue(actual_)
