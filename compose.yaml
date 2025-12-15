@@ -1,7 +1,7 @@
 services:
   # Node.js converter tests (cross-platform)
   converter-test:
-    image: node:20-slim
+    image: node:24-slim
     volumes:
       - ./build:/app/build
       - /app/build/node_modules  # Isolate node_modules for platform compatibility

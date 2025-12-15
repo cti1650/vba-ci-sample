@@ -8,18 +8,17 @@ Public Sub Test_UrlEncode_AlphaNumeric()
     Dim api As WebAPI
     Set api = New WebAPI
 
-    If api.UrlEncode("abc123") <> "abc123" Then
-        Utils.Fail 3001, "UrlEncode should not change alphanumeric"
-    End If
+    expect(api.UrlEncode("abc123")).toBe "abc123"
+    expect(api.UrlEncode("ABC")).toBe "ABC"
+    expect(api.UrlEncode("test")).toBe "test"
 End Sub
 
 Public Sub Test_UrlEncode_Space()
     Dim api As WebAPI
     Set api = New WebAPI
 
-    If api.UrlEncode("hello world") <> "hello+world" Then
-        Utils.Fail 3002, "UrlEncode should convert space to +"
-    End If
+    expect(api.UrlEncode("hello world")).toBe "hello+world"
+    expect(api.UrlEncode(" ")).toBe "+"
 End Sub
 
 Public Sub Test_UrlEncode_SpecialChars()
@@ -27,22 +26,20 @@ Public Sub Test_UrlEncode_SpecialChars()
     Set api = New WebAPI
 
     ' 予約されていない文字はそのまま
-    If api.UrlEncode("test-value_1.0~") <> "test-value_1.0~" Then
-        Utils.Fail 3003, "UrlEncode should not change unreserved chars"
-    End If
+    expect(api.UrlEncode("test-value_1.0~")).toBe "test-value_1.0~"
+    expect(api.UrlEncode("-_.~")).toBe "-_.~"
 End Sub
 
-Public Sub Test_UrlEncode_Japanese()
+Public Sub Test_UrlEncode_Reserved()
     Dim api As WebAPI
     Set api = New WebAPI
 
+    ' 予約文字はエンコードされる
     Dim encoded As String
     encoded = api.UrlEncode("&=")
 
-    ' & と = はエンコードされるべき
-    If InStr(encoded, "&") > 0 Or InStr(encoded, "=") > 0 Then
-        Utils.Fail 3004, "UrlEncode should encode special characters"
-    End If
+    expect(encoded).Not_.toContain "&"
+    expect(encoded).Not_.toContain "="
 End Sub
 
 Public Sub Test_BuildQueryString_Simple()
@@ -57,18 +54,9 @@ Public Sub Test_BuildQueryString_Simple()
     Dim result As String
     result = api.BuildQueryString(params)
 
-    ' nameとageの両方が含まれているか確認
-    If InStr(result, "name=john") = 0 Then
-        Utils.Fail 3005, "BuildQueryString should contain name=john"
-    End If
-
-    If InStr(result, "age=30") = 0 Then
-        Utils.Fail 3006, "BuildQueryString should contain age=30"
-    End If
-
-    If InStr(result, "&") = 0 Then
-        Utils.Fail 3007, "BuildQueryString should contain &"
-    End If
+    expect(result).toContain "name=john"
+    expect(result).toContain "age=30"
+    expect(result).toContain "&"
 End Sub
 
 Public Sub Test_BuildQueryString_WithSpaces()
@@ -82,18 +70,14 @@ Public Sub Test_BuildQueryString_WithSpaces()
     Dim result As String
     result = api.BuildQueryString(params)
 
-    If InStr(result, "query=hello+world") = 0 Then
-        Utils.Fail 3008, "BuildQueryString should encode spaces"
-    End If
+    expect(result).toContain "query=hello+world"
 End Sub
 
 Public Sub Test_DefaultTimeout()
     Dim api As WebAPI
     Set api = New WebAPI
 
-    If api.Timeout <> 30000 Then
-        Utils.Fail 3009, "Default timeout should be 30000ms"
-    End If
+    expect(api.Timeout).toBe 30000
 End Sub
 
 Public Sub Test_SetTimeout()
@@ -101,28 +85,22 @@ Public Sub Test_SetTimeout()
     Set api = New WebAPI
 
     api.Timeout = 60000
+    expect(api.Timeout).toBe 60000
 
-    If api.Timeout <> 60000 Then
-        Utils.Fail 3010, "Timeout should be settable"
-    End If
+    api.Timeout = 5000
+    expect(api.Timeout).toBe 5000
 End Sub
 
 Public Sub Test_InitialStatus()
     Dim api As WebAPI
     Set api = New WebAPI
 
-    ' 初期状態ではLastStatusは0
-    If api.LastStatus <> 0 Then
-        Utils.Fail 3011, "Initial LastStatus should be 0"
-    End If
+    expect(api.LastStatus).toBe 0
 End Sub
 
 Public Sub Test_IsSuccess_NoRequest()
     Dim api As WebAPI
     Set api = New WebAPI
 
-    ' リクエスト前はFalse
-    If api.IsSuccess() Then
-        Utils.Fail 3012, "IsSuccess should be False before any request"
-    End If
+    expect(api.IsSuccess()).toBeFalsy
 End Sub
