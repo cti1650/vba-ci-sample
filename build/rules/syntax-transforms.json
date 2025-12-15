@@ -1,0 +1,207 @@
+{
+  "description": "Syntax transformation rules for VBA to VBS conversion",
+  "transforms": [
+    {
+      "name": "debug-print",
+      "description": "Debug.Print -> DebugPrint (VBS cannot have Print as method name)",
+      "pattern": "\\bDebug\\.Print\\b",
+      "replacement": "DebugPrint",
+      "scope": "all",
+      "priority": 100
+    },
+    {
+      "name": "with-events",
+      "description": "Remove WithEvents keyword",
+      "pattern": "\\bWithEvents\\s+",
+      "replacement": "",
+      "scope": "all",
+      "priority": 110
+    },
+    {
+      "name": "friend-keyword",
+      "description": "Remove Friend keyword from Sub/Function/Property",
+      "pattern": "\\bFriend\\s+(Sub|Function|Property)\\b",
+      "replacement": "$1",
+      "scope": "all",
+      "priority": 120
+    },
+    {
+      "name": "static-to-dim",
+      "description": "Static -> Dim (no Static in VBS)",
+      "pattern": "^(\\s*)Static\\s+",
+      "replacement": "$1Dim ",
+      "scope": "all",
+      "priority": 130
+    },
+    {
+      "name": "utils-module-prefix",
+      "description": "Utils.Method -> UtilsMethod (VBS cannot call module.method)",
+      "pattern": "\\bUtils\\.",
+      "replacement": "Utils",
+      "scope": "all",
+      "priority": 140
+    },
+    {
+      "name": "on-error-goto-0",
+      "description": "On Error GoTo 0 -> remove line (VBS does not support this)",
+      "pattern": ".*On\\s+Error\\s+GoTo\\s+0.*",
+      "replacement": "",
+      "scope": "all",
+      "priority": 149
+    },
+    {
+      "name": "on-error-goto-label",
+      "description": "On Error GoTo Label -> On Error Resume Next",
+      "pattern": "On\\s+Error\\s+GoTo\\s+\\w+",
+      "replacement": "On Error Resume Next",
+      "scope": "all",
+      "priority": 150
+    },
+    {
+      "name": "thisworkbook-path",
+      "description": "ThisWorkbook.Path -> GetScriptDir() or inline FSO",
+      "pattern": "\\bThisWorkbook\\.[Pp]ath\\b",
+      "replacement": {
+        "module": "GetScriptDir()",
+        "class": "CreateObject(\"Scripting.FileSystemObject\").GetParentFolderName(WScript.ScriptFullName)"
+      },
+      "scope": "contextual",
+      "priority": 200
+    },
+    {
+      "name": "new-collection",
+      "description": "New Collection -> CreateCollection() or Dictionary",
+      "pattern": "\\bNew\\s+Collection\\b",
+      "replacement": {
+        "module": "CreateCollection()",
+        "class": "CreateObject(\"Scripting.Dictionary\")"
+      },
+      "scope": "contextual",
+      "priority": 210
+    },
+    {
+      "name": "with-new-split",
+      "description": "With New ClassName -> split into multiple lines",
+      "pattern": "^(\\s*)With\\s+New\\s+(\\w+)",
+      "replacement": "$1Dim withTemp_$2\r\n$1Set withTemp_$2 = New $2\r\n$1With withTemp_$2",
+      "scope": "all",
+      "priority": 220
+    },
+    {
+      "name": "param-array",
+      "description": "ParamArray args() As Variant -> args",
+      "pattern": "\\bParamArray\\s+(\\w+)\\(\\)\\s+As\\s+\\w+",
+      "replacement": "$1",
+      "scope": "all",
+      "priority": 300
+    },
+    {
+      "name": "param-array-no-type",
+      "description": "ParamArray args() -> args",
+      "pattern": "\\bParamArray\\s+(\\w+)\\(\\)",
+      "replacement": "$1",
+      "scope": "all",
+      "priority": 301
+    }
+  ],
+  "optionalParams": [
+    {
+      "name": "optional-byref-typed-default",
+      "pattern": "\\bOptional\\s+ByRef\\s+(\\w+)\\s+As\\s+\\w+\\s*=\\s*[^,)]+",
+      "replacement": "$1",
+      "priority": 400
+    },
+    {
+      "name": "optional-byval-typed-default",
+      "pattern": "\\bOptional\\s+ByVal\\s+(\\w+)\\s+As\\s+\\w+\\s*=\\s*[^,)]+",
+      "replacement": "ByVal $1",
+      "priority": 401
+    },
+    {
+      "name": "optional-typed-default",
+      "pattern": "\\bOptional\\s+(\\w+)\\s+As\\s+\\w+\\s*=\\s*[^,)]+",
+      "replacement": "$1",
+      "priority": 402
+    },
+    {
+      "name": "optional-byref-default",
+      "pattern": "\\bOptional\\s+ByRef\\s+(\\w+)\\s*=\\s*[^,)]+",
+      "replacement": "$1",
+      "priority": 403
+    },
+    {
+      "name": "optional-byval-default",
+      "pattern": "\\bOptional\\s+ByVal\\s+(\\w+)\\s*=\\s*[^,)]+",
+      "replacement": "ByVal $1",
+      "priority": 404
+    },
+    {
+      "name": "optional-default",
+      "pattern": "\\bOptional\\s+(\\w+)\\s*=\\s*[^,)]+",
+      "replacement": "$1",
+      "priority": 405
+    },
+    {
+      "name": "optional-byref-typed",
+      "pattern": "\\bOptional\\s+ByRef\\s+(\\w+)\\s+As\\s+\\w+",
+      "replacement": "$1",
+      "priority": 410
+    },
+    {
+      "name": "optional-byval-typed",
+      "pattern": "\\bOptional\\s+ByVal\\s+(\\w+)\\s+As\\s+\\w+",
+      "replacement": "ByVal $1",
+      "priority": 411
+    },
+    {
+      "name": "optional-typed",
+      "pattern": "\\bOptional\\s+(\\w+)\\s+As\\s+\\w+",
+      "replacement": "$1",
+      "priority": 412
+    }
+  ],
+  "typeRemoval": [
+    {
+      "name": "as-type-in-params",
+      "description": "Remove As Type in parameters",
+      "pattern": "\\s+As\\s+\\w+(?=\\s*[,)]|$)",
+      "replacement": "",
+      "priority": 500
+    },
+    {
+      "name": "function-return-type",
+      "description": "Remove function return type",
+      "pattern": "\\)\\s+As\\s+\\w+\\s*$",
+      "replacement": ")",
+      "priority": 501
+    },
+    {
+      "name": "dim-as-type",
+      "description": "Dim x As Type -> Dim x",
+      "pattern": "(\\bDim\\s+\\w+)\\s+As\\s+\\w+",
+      "replacement": "$1",
+      "priority": 502
+    },
+    {
+      "name": "private-public-as-type",
+      "description": "Private/Public x As Type -> Private/Public x",
+      "pattern": "(\\b(?:Private|Public)\\s+\\w+)\\s+As\\s+\\w+",
+      "replacement": "$1",
+      "priority": 503
+    },
+    {
+      "name": "const-as-type",
+      "description": "Const X As Type = -> Const X =",
+      "pattern": "(\\bConst\\s+\\w+)\\s+As\\s+\\w+",
+      "replacement": "$1",
+      "priority": 504
+    },
+    {
+      "name": "property-return-type",
+      "description": "Property Get/Let/Set return type",
+      "pattern": "(Property\\s+(?:Get|Let|Set)\\s+\\w+\\([^)]*\\))\\s+As\\s+\\w+",
+      "replacement": "$1",
+      "priority": 505
+    }
+  ]
+}

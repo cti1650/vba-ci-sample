@@ -1,0 +1,277 @@
+{
+  "description": "WinAPI mock functions for VBS",
+  "mockedFunctions": [
+    "GetTickCount", "GetTickCount64", "Sleep", "GetCurrentProcessId",
+    "GetLastError", "SetLastError", "GetComputerNameA", "GetComputerNameW",
+    "GetComputerName", "GetUserNameA", "GetUserNameW", "GetTempPathA", "GetTempPathW",
+    "GetSystemDirectoryA", "GetSystemDirectoryW", "GetWindowsDirectoryA", "GetWindowsDirectoryW",
+    "QueryPerformanceCounter", "QueryPerformanceFrequency", "CopyMemory", "RtlMoveMemory",
+    "MessageBoxA", "MessageBoxW", "GetActiveWindow", "GetForegroundWindow",
+    "FindWindowA", "FindWindowW", "GetWindowTextA", "GetWindowTextW",
+    "SetWindowTextA", "SetWindowTextW", "GetCursorPos", "SetCursorPos",
+    "GetAsyncKeyState", "GetKeyState", "SendMessageA", "SendMessageW",
+    "PostMessageA", "PostMessageW", "SHGetFolderPathA", "SHGetFolderPathW",
+    "CoCreateGuid", "RegOpenKeyExA", "RegQueryValueExA", "RegCloseKey"
+  ],
+  "functions": [
+    {
+      "name": "GetTickCount",
+      "lib": "kernel32",
+      "body": "GetTickCount = CLng(Timer() * 1000) Mod 2147483647"
+    },
+    {
+      "name": "GetTickCount64",
+      "lib": "kernel32",
+      "body": "GetTickCount64 = CDbl(Timer() * 1000)"
+    },
+    {
+      "name": "GetCurrentProcessId",
+      "lib": "kernel32",
+      "body": "GetCurrentProcessId = Int(Rnd() * 32767) + 1000"
+    },
+    {
+      "name": "GetLastError",
+      "lib": "kernel32",
+      "body": "GetLastError = mock_LastError",
+      "requires": ["mock_LastError"]
+    },
+    {
+      "name": "SetLastError",
+      "lib": "kernel32",
+      "type": "sub",
+      "params": [{"name": "dwErrCode", "byval": true}],
+      "body": "mock_LastError = dwErrCode"
+    },
+    {
+      "name": "GetComputerNameA",
+      "lib": "kernel32",
+      "params": [{"name": "lpBuffer", "byref": true}, {"name": "nSize", "byref": true}],
+      "body": "Dim shell, name\nSet shell = CreateObject(\"WScript.Shell\")\nname = shell.ExpandEnvironmentStrings(\"%COMPUTERNAME%\")\nlpBuffer = name\nnSize = Len(name)\nGetComputerNameA = 1"
+    },
+    {
+      "name": "GetComputerNameW",
+      "lib": "kernel32",
+      "params": [{"name": "lpBuffer", "byref": true}, {"name": "nSize", "byref": true}],
+      "body": "GetComputerNameW = GetComputerNameA(lpBuffer, nSize)"
+    },
+    {
+      "name": "GetUserNameA",
+      "lib": "advapi32",
+      "params": [{"name": "lpBuffer", "byref": true}, {"name": "nSize", "byref": true}],
+      "body": "Dim shell, name\nSet shell = CreateObject(\"WScript.Shell\")\nname = shell.ExpandEnvironmentStrings(\"%USERNAME%\")\nlpBuffer = name\nnSize = Len(name)\nGetUserNameA = 1"
+    },
+    {
+      "name": "GetUserNameW",
+      "lib": "advapi32",
+      "params": [{"name": "lpBuffer", "byref": true}, {"name": "nSize", "byref": true}],
+      "body": "GetUserNameW = GetUserNameA(lpBuffer, nSize)"
+    },
+    {
+      "name": "GetTempPathA",
+      "lib": "kernel32",
+      "params": [{"name": "nBufferLength", "byval": true}, {"name": "lpBuffer", "byref": true}],
+      "body": "Dim path\npath = GetTempPath()\nlpBuffer = path\nGetTempPathA = Len(path)"
+    },
+    {
+      "name": "GetTempPathW",
+      "lib": "kernel32",
+      "params": [{"name": "nBufferLength", "byval": true}, {"name": "lpBuffer", "byref": true}],
+      "body": "GetTempPathW = GetTempPathA(nBufferLength, lpBuffer)"
+    },
+    {
+      "name": "GetSystemDirectoryA",
+      "lib": "kernel32",
+      "params": [{"name": "lpBuffer", "byref": true}, {"name": "uSize", "byval": true}],
+      "body": "Dim shell, path\nSet shell = CreateObject(\"WScript.Shell\")\npath = shell.ExpandEnvironmentStrings(\"%SystemRoot%\\System32\")\nlpBuffer = path\nGetSystemDirectoryA = Len(path)"
+    },
+    {
+      "name": "GetSystemDirectoryW",
+      "lib": "kernel32",
+      "params": [{"name": "lpBuffer", "byref": true}, {"name": "uSize", "byval": true}],
+      "body": "GetSystemDirectoryW = GetSystemDirectoryA(lpBuffer, uSize)"
+    },
+    {
+      "name": "GetWindowsDirectoryA",
+      "lib": "kernel32",
+      "params": [{"name": "lpBuffer", "byref": true}, {"name": "uSize", "byval": true}],
+      "body": "Dim shell, path\nSet shell = CreateObject(\"WScript.Shell\")\npath = shell.ExpandEnvironmentStrings(\"%SystemRoot%\")\nlpBuffer = path\nGetWindowsDirectoryA = Len(path)"
+    },
+    {
+      "name": "GetWindowsDirectoryW",
+      "lib": "kernel32",
+      "params": [{"name": "lpBuffer", "byref": true}, {"name": "uSize", "byval": true}],
+      "body": "GetWindowsDirectoryW = GetWindowsDirectoryA(lpBuffer, uSize)"
+    },
+    {
+      "name": "QueryPerformanceCounter",
+      "lib": "kernel32",
+      "params": [{"name": "lpPerformanceCount", "byref": true}],
+      "body": "lpPerformanceCount = CDbl(Timer() * 1000000)\nQueryPerformanceCounter = 1"
+    },
+    {
+      "name": "QueryPerformanceFrequency",
+      "lib": "kernel32",
+      "params": [{"name": "lpFrequency", "byref": true}],
+      "body": "lpFrequency = 1000000\nQueryPerformanceFrequency = 1"
+    },
+    {
+      "name": "CopyMemory",
+      "lib": "kernel32",
+      "type": "sub",
+      "params": [{"name": "Destination", "byref": true}, {"name": "Source", "byref": true}, {"name": "Length", "byval": true}],
+      "body": "DebugPrint \"[MOCK WARNING] CopyMemory called - operation not supported in VBS\""
+    },
+    {
+      "name": "RtlMoveMemory",
+      "lib": "kernel32",
+      "type": "sub",
+      "params": [{"name": "Destination", "byref": true}, {"name": "Source", "byref": true}, {"name": "Length", "byval": true}],
+      "body": "CopyMemory Destination, Source, Length"
+    },
+    {
+      "name": "MessageBoxA",
+      "lib": "user32",
+      "params": [{"name": "hWnd", "byval": true}, {"name": "lpText", "byval": true}, {"name": "lpCaption", "byval": true}, {"name": "uType", "byval": true}],
+      "body": "DebugPrint \"[MessageBox] \" & lpCaption & \": \" & lpText\nMessageBoxA = 1"
+    },
+    {
+      "name": "MessageBoxW",
+      "lib": "user32",
+      "params": [{"name": "hWnd", "byval": true}, {"name": "lpText", "byval": true}, {"name": "lpCaption", "byval": true}, {"name": "uType", "byval": true}],
+      "body": "MessageBoxW = MessageBoxA(hWnd, lpText, lpCaption, uType)"
+    },
+    {
+      "name": "GetActiveWindow",
+      "lib": "user32",
+      "body": "GetActiveWindow = 0"
+    },
+    {
+      "name": "GetForegroundWindow",
+      "lib": "user32",
+      "body": "GetForegroundWindow = 0"
+    },
+    {
+      "name": "FindWindowA",
+      "lib": "user32",
+      "params": [{"name": "lpClassName", "byval": true}, {"name": "lpWindowName", "byval": true}],
+      "body": "FindWindowA = 0"
+    },
+    {
+      "name": "FindWindowW",
+      "lib": "user32",
+      "params": [{"name": "lpClassName", "byval": true}, {"name": "lpWindowName", "byval": true}],
+      "body": "FindWindowW = 0"
+    },
+    {
+      "name": "GetWindowTextA",
+      "lib": "user32",
+      "params": [{"name": "hWnd", "byval": true}, {"name": "lpString", "byref": true}, {"name": "nMaxCount", "byval": true}],
+      "body": "lpString = \"\"\nGetWindowTextA = 0"
+    },
+    {
+      "name": "GetWindowTextW",
+      "lib": "user32",
+      "params": [{"name": "hWnd", "byval": true}, {"name": "lpString", "byref": true}, {"name": "nMaxCount", "byval": true}],
+      "body": "GetWindowTextW = GetWindowTextA(hWnd, lpString, nMaxCount)"
+    },
+    {
+      "name": "SetWindowTextA",
+      "lib": "user32",
+      "params": [{"name": "hWnd", "byval": true}, {"name": "lpString", "byval": true}],
+      "body": "SetWindowTextA = 0"
+    },
+    {
+      "name": "SetWindowTextW",
+      "lib": "user32",
+      "params": [{"name": "hWnd", "byval": true}, {"name": "lpString", "byval": true}],
+      "body": "SetWindowTextW = 0"
+    },
+    {
+      "name": "GetCursorPos",
+      "lib": "user32",
+      "params": [{"name": "lpPoint", "byref": true}],
+      "body": "GetCursorPos = 0"
+    },
+    {
+      "name": "SetCursorPos",
+      "lib": "user32",
+      "params": [{"name": "X", "byval": true}, {"name": "Y", "byval": true}],
+      "body": "SetCursorPos = 0"
+    },
+    {
+      "name": "GetAsyncKeyState",
+      "lib": "user32",
+      "params": [{"name": "vKey", "byval": true}],
+      "body": "GetAsyncKeyState = 0"
+    },
+    {
+      "name": "GetKeyState",
+      "lib": "user32",
+      "params": [{"name": "nVirtKey", "byval": true}],
+      "body": "GetKeyState = 0"
+    },
+    {
+      "name": "SendMessageA",
+      "lib": "user32",
+      "params": [{"name": "hWnd", "byval": true}, {"name": "Msg", "byval": true}, {"name": "wParam", "byval": true}, {"name": "lParam", "byval": true}],
+      "body": "SendMessageA = 0"
+    },
+    {
+      "name": "SendMessageW",
+      "lib": "user32",
+      "params": [{"name": "hWnd", "byval": true}, {"name": "Msg", "byval": true}, {"name": "wParam", "byval": true}, {"name": "lParam", "byval": true}],
+      "body": "SendMessageW = 0"
+    },
+    {
+      "name": "PostMessageA",
+      "lib": "user32",
+      "params": [{"name": "hWnd", "byval": true}, {"name": "Msg", "byval": true}, {"name": "wParam", "byval": true}, {"name": "lParam", "byval": true}],
+      "body": "PostMessageA = 0"
+    },
+    {
+      "name": "PostMessageW",
+      "lib": "user32",
+      "params": [{"name": "hWnd", "byval": true}, {"name": "Msg", "byval": true}, {"name": "wParam", "byval": true}, {"name": "lParam", "byval": true}],
+      "body": "PostMessageW = 0"
+    },
+    {
+      "name": "SHGetFolderPathA",
+      "lib": "shell32",
+      "params": [{"name": "hwndOwner", "byval": true}, {"name": "nFolder", "byval": true}, {"name": "hToken", "byval": true}, {"name": "dwFlags", "byval": true}, {"name": "pszPath", "byref": true}],
+      "body": "Dim shell\nSet shell = CreateObject(\"WScript.Shell\")\nSelect Case nFolder\n    Case 0: pszPath = shell.SpecialFolders(\"Desktop\")\n    Case 5: pszPath = shell.SpecialFolders(\"MyDocuments\")\n    Case 26: pszPath = shell.ExpandEnvironmentStrings(\"%APPDATA%\")\n    Case 28: pszPath = shell.ExpandEnvironmentStrings(\"%LOCALAPPDATA%\")\n    Case 35: pszPath = shell.ExpandEnvironmentStrings(\"%PUBLIC%\\Documents\")\n    Case 36: pszPath = shell.ExpandEnvironmentStrings(\"%ProgramFiles%\")\n    Case 37: pszPath = shell.ExpandEnvironmentStrings(\"%SystemRoot%\")\n    Case Else: pszPath = \"\"\nEnd Select\nIf pszPath <> \"\" Then SHGetFolderPathA = 0 Else SHGetFolderPathA = 1"
+    },
+    {
+      "name": "SHGetFolderPathW",
+      "lib": "shell32",
+      "params": [{"name": "hwndOwner", "byval": true}, {"name": "nFolder", "byval": true}, {"name": "hToken", "byval": true}, {"name": "dwFlags", "byval": true}, {"name": "pszPath", "byref": true}],
+      "body": "SHGetFolderPathW = SHGetFolderPathA(hwndOwner, nFolder, hToken, dwFlags, pszPath)"
+    },
+    {
+      "name": "CoCreateGuid",
+      "lib": "ole32",
+      "params": [{"name": "pguid", "byref": true}],
+      "body": "Dim typeLib\nSet typeLib = CreateObject(\"Scriptlet.TypeLib\")\npguid = Mid(typeLib.GUID, 2, 36)\nCoCreateGuid = 0"
+    },
+    {
+      "name": "RegOpenKeyExA",
+      "lib": "advapi32",
+      "params": [{"name": "hKey", "byval": true}, {"name": "lpSubKey", "byval": true}, {"name": "ulOptions", "byval": true}, {"name": "samDesired", "byval": true}, {"name": "phkResult", "byref": true}],
+      "body": "phkResult = 0\nRegOpenKeyExA = 2"
+    },
+    {
+      "name": "RegQueryValueExA",
+      "lib": "advapi32",
+      "params": [{"name": "hKey", "byval": true}, {"name": "lpValueName", "byval": true}, {"name": "lpReserved", "byval": true}, {"name": "lpType", "byref": true}, {"name": "lpData", "byref": true}, {"name": "lpcbData", "byref": true}],
+      "body": "RegQueryValueExA = 2"
+    },
+    {
+      "name": "RegCloseKey",
+      "lib": "advapi32",
+      "params": [{"name": "hKey", "byval": true}],
+      "body": "RegCloseKey = 0"
+    }
+  ],
+  "globalVariables": [
+    { "name": "mock_LastError", "value": "0" }
+  ]
+}

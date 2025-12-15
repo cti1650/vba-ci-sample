@@ -1,0 +1,9 @@
+services:
+  # Node.js converter tests (cross-platform)
+  converter-test:
+    image: node:24-slim
+    volumes:
+      - ./build:/app/build
+      - /app/build/node_modules  # Isolate node_modules for platform compatibility
+    working_dir: /app/build
+    command: ["sh", "-c", "npm ci && npm test"]

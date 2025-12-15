@@ -1,0 +1,131 @@
+{
+  "description": "Function rename rules for VBA type-suffixed functions",
+  "renames": [
+    {
+      "name": "left-dollar",
+      "from": "\\bLeft\\$\\(",
+      "to": "Left(",
+      "description": "Left$ -> Left"
+    },
+    {
+      "name": "mid-dollar",
+      "from": "\\bMid\\$\\(",
+      "to": "Mid(",
+      "description": "Mid$ -> Mid"
+    },
+    {
+      "name": "right-dollar",
+      "from": "\\bRight\\$\\(",
+      "to": "Right(",
+      "description": "Right$ -> Right"
+    },
+    {
+      "name": "replace-dollar",
+      "from": "\\bReplace\\$\\(",
+      "to": "Replace(",
+      "description": "Replace$ -> Replace"
+    },
+    {
+      "name": "trim-dollar",
+      "from": "\\bTrim\\$\\(",
+      "to": "Trim(",
+      "description": "Trim$ -> Trim"
+    },
+    {
+      "name": "ltrim-dollar",
+      "from": "\\bLTrim\\$\\(",
+      "to": "LTrim(",
+      "description": "LTrim$ -> LTrim"
+    },
+    {
+      "name": "rtrim-dollar",
+      "from": "\\bRTrim\\$\\(",
+      "to": "RTrim(",
+      "description": "RTrim$ -> RTrim"
+    },
+    {
+      "name": "ucase-dollar",
+      "from": "\\bUCase\\$\\(",
+      "to": "UCase(",
+      "description": "UCase$ -> UCase"
+    },
+    {
+      "name": "lcase-dollar",
+      "from": "\\bLCase\\$\\(",
+      "to": "LCase(",
+      "description": "LCase$ -> LCase"
+    },
+    {
+      "name": "space-dollar",
+      "from": "\\bSpace\\$\\(",
+      "to": "Space(",
+      "description": "Space$ -> Space"
+    },
+    {
+      "name": "string-dollar",
+      "from": "\\bString\\$\\(",
+      "to": "String(",
+      "description": "String$ -> String"
+    },
+    {
+      "name": "chr-dollar",
+      "from": "\\bChr\\$\\(",
+      "to": "Chr(",
+      "description": "Chr$ -> Chr"
+    },
+    {
+      "name": "chrw-dollar",
+      "from": "\\bChrW\\$\\(",
+      "to": "ChrW(",
+      "description": "ChrW$ -> ChrW"
+    },
+    {
+      "name": "chrb-dollar",
+      "from": "\\bChrB\\$\\(",
+      "to": "Chr(",
+      "description": "ChrB$ -> Chr"
+    },
+    {
+      "name": "str-dollar",
+      "from": "\\bStr\\$\\(",
+      "to": "CStr(",
+      "description": "Str$ -> CStr"
+    },
+    {
+      "name": "format-dollar",
+      "from": "\\bFormat\\$\\(",
+      "to": "FormatNumber(",
+      "description": "Format$ -> FormatNumber"
+    },
+    {
+      "name": "hex-dollar",
+      "from": "\\bHex\\$\\(",
+      "to": "Hex(",
+      "description": "Hex$ -> Hex"
+    },
+    {
+      "name": "oct-dollar",
+      "from": "\\bOct\\$\\(",
+      "to": "Oct(",
+      "description": "Oct$ -> Oct"
+    },
+    {
+      "name": "date-dollar",
+      "from": "\\bDate\\$",
+      "to": "CStr(Date)",
+      "description": "Date$ -> CStr(Date)"
+    },
+    {
+      "name": "time-dollar",
+      "from": "\\bTime\\$",
+      "to": "CStr(Time)",
+      "description": "Time$ -> CStr(Time)"
+    },
+    {
+      "name": "error-dollar",
+      "from": "\\bError\\$\\(",
+      "to": "Error(",
+      "description": "Error$ -> Error"
+    }
+  ]
+}

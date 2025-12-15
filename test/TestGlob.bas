@@ -10,13 +10,8 @@ Public Sub Test_SetType_Dictionary()
     Set g = New Glob
     g.SetType = GlobDataType.dictionary
 
-    If g.GetTypeName <> "Dictionary" Then
-        Utils.Fail 2001, "GetTypeName expected 'Dictionary'"
-    End If
-
-    If g.GetType <> GlobDataType.dictionary Then
-        Utils.Fail 2002, "GetType expected GlobDataType.dictionary"
-    End If
+    expect(g.GetTypeName).toBe "Dictionary"
+    expect(g.GetType).toBe GlobDataType.dictionary
 End Sub
 
 Public Sub Test_SetType_StringArray()
@@ -24,13 +19,8 @@ Public Sub Test_SetType_StringArray()
     Set g = New Glob
     g.SetType = GlobDataType.StringArray
 
-    If g.GetTypeName <> "String" Then
-        Utils.Fail 2005, "GetTypeName expected 'String'"
-    End If
-
-    If g.GetType <> GlobDataType.StringArray Then
-        Utils.Fail 2006, "GetType expected GlobDataType.StringArray"
-    End If
+    expect(g.GetTypeName).toBe "String"
+    expect(g.GetType).toBe GlobDataType.StringArray
 End Sub
 
 Public Sub Test_SetType_ArrayList()
@@ -38,13 +28,8 @@ Public Sub Test_SetType_ArrayList()
     Set g = New Glob
     g.SetType = GlobDataType.ArrayList
 
-    If g.GetTypeName <> "ArrayList" Then
-        Utils.Fail 2007, "GetTypeName expected 'ArrayList'"
-    End If
-
-    If g.GetType <> GlobDataType.ArrayList Then
-        Utils.Fail 2008, "GetType expected GlobDataType.ArrayList"
-    End If
+    expect(g.GetTypeName).toBe "ArrayList"
+    expect(g.GetType).toBe GlobDataType.ArrayList
 End Sub
 
 ' ============================================
@@ -56,9 +41,7 @@ Public Sub Test_GetCount_Empty_Dictionary()
     Set g = New Glob
     g.SetType = GlobDataType.dictionary
 
-    If g.GetCount <> 0 Then
-        Utils.Fail 2010, "GetCount expected 0 for empty Dictionary"
-    End If
+    expect(g.GetCount).toBe 0
 End Sub
 
 Public Sub Test_GetCount_Empty_StringArray()
@@ -66,9 +49,7 @@ Public Sub Test_GetCount_Empty_StringArray()
     Set g = New Glob
     g.SetType = GlobDataType.StringArray
 
-    If g.GetCount <> 0 Then
-        Utils.Fail 2012, "GetCount expected 0 for empty StringArray"
-    End If
+    expect(g.GetCount).toBe 0
 End Sub
 
 Public Sub Test_GetCount_Empty_ArrayList()
@@ -76,9 +57,7 @@ Public Sub Test_GetCount_Empty_ArrayList()
     Set g = New Glob
     g.SetType = GlobDataType.ArrayList
 
-    If g.GetCount <> 0 Then
-        Utils.Fail 2013, "GetCount expected 0 for empty ArrayList"
-    End If
+    expect(g.GetCount).toBe 0
 End Sub
 
 ' ============================================
@@ -94,9 +73,7 @@ Public Sub Test_AddItem_Dictionary()
     g.AddItem "key2", "value2"
     g.AddItem "key3", "value3"
 
-    If g.GetCount <> 3 Then
-        Utils.Fail 2020, "GetCount expected 3 after adding 3 items to Dictionary"
-    End If
+    expect(g.GetCount).toBe 3
 End Sub
 
 Public Sub Test_AddItem_StringArray()
@@ -109,9 +86,7 @@ Public Sub Test_AddItem_StringArray()
     g.AddItem "key3", "value3"
     g.AddItem "key4", "value4"
 
-    If g.GetCount <> 4 Then
-        Utils.Fail 2022, "GetCount expected 4 after adding 4 items to StringArray"
-    End If
+    expect(g.GetCount).toBe 4
 End Sub
 
 Public Sub Test_AddItem_ArrayList()
@@ -122,9 +97,7 @@ Public Sub Test_AddItem_ArrayList()
     g.AddItem "key1", "value1"
     g.AddItem "key2", "value2"
 
-    If g.GetCount <> 2 Then
-        Utils.Fail 2023, "GetCount expected 2 after adding 2 items to ArrayList"
-    End If
+    expect(g.GetCount).toBe 2
 End Sub
 
 ' ============================================
@@ -142,13 +115,9 @@ Public Sub Test_GetItems_Dictionary()
     Dim items As Object
     Set items = g.GetItems
 
-    If items.Count <> 2 Then
-        Utils.Fail 2030, "GetItems.Count expected 2 for Dictionary"
-    End If
-
-    If items("keyA") <> "valueA" Then
-        Utils.Fail 2031, "GetItems('keyA') expected 'valueA'"
-    End If
+    expect(items.Count).toBe 2
+    expect(items("keyA")).toBe "valueA"
+    expect(items("keyB")).toBe "valueB"
 End Sub
 
 Public Sub Test_GetItems_StringArray()
@@ -163,13 +132,10 @@ Public Sub Test_GetItems_StringArray()
     Dim items As Variant
     items = g.GetItems
 
-    If UBound(items) - LBound(items) + 1 <> 3 Then
-        Utils.Fail 2033, "GetItems array length expected 3 for StringArray"
-    End If
-
-    If items(0) <> "val1" Then
-        Utils.Fail 2034, "GetItems(0) expected 'val1'"
-    End If
+    expect(UBound(items) - LBound(items) + 1).toBe 3
+    expect(items(0)).toBe "val1"
+    expect(items(1)).toBe "val2"
+    expect(items(2)).toBe "val3"
 End Sub
 
 Public Sub Test_GetItems_ArrayList()
@@ -183,9 +149,7 @@ Public Sub Test_GetItems_ArrayList()
     Dim items As Object
     Set items = g.GetItems
 
-    If items.Count <> 2 Then
-        Utils.Fail 2035, "GetItems.Count expected 2 for ArrayList"
-    End If
+    expect(items.Count).toBe 2
 End Sub
 
 ' ============================================
@@ -199,21 +163,12 @@ Public Sub Test_Clear_Dictionary()
 
     g.AddItem "key1", "value1"
     g.AddItem "key2", "value2"
-
-    If g.GetCount <> 2 Then
-        Utils.Fail 2040, "GetCount expected 2 before Clear"
-    End If
+    expect(g.GetCount).toBe 2
 
     g.Clear
 
-    If g.GetCount <> 0 Then
-        Utils.Fail 2041, "GetCount expected 0 after Clear"
-    End If
-
-    ' Clear後も同じ型を維持
-    If g.GetTypeName <> "Dictionary" Then
-        Utils.Fail 2042, "GetTypeName expected 'Dictionary' after Clear"
-    End If
+    expect(g.GetCount).toBe 0
+    expect(g.GetTypeName).toBe "Dictionary"
 End Sub
 
 ' ============================================
@@ -227,21 +182,13 @@ Public Sub Test_ChangeType()
     ' Dictionary に設定
     g.SetType = GlobDataType.dictionary
     g.AddItem "key1", "value1"
-
-    If g.GetCount <> 1 Then
-        Utils.Fail 2050, "GetCount expected 1 for Dictionary"
-    End If
+    expect(g.GetCount).toBe 1
 
     ' StringArray に変更（データはリセットされる）
     g.SetType = GlobDataType.StringArray
 
-    If g.GetTypeName <> "String" Then
-        Utils.Fail 2051, "GetTypeName expected 'String' after type change"
-    End If
-
-    If g.GetCount <> 0 Then
-        Utils.Fail 2052, "GetCount expected 0 after type change (data should be reset)"
-    End If
+    expect(g.GetTypeName).toBe "String"
+    expect(g.GetCount).toBe 0
 End Sub
 
 ' ============================================
@@ -251,44 +198,34 @@ End Sub
 ' ============================================
 
 Public Sub Test_iGlob_FindClsFiles()
-    ' src/*.cls ファイルを検索（CI環境: build/vbs/ から実行）
     Dim g As Glob
     Set g = New Glob
 
-    ' iGlob内でClearが呼ばれSetTypeがCollectionになる
-    ' GetScriptDir() は build/vbs を返すので、../../src/*.cls でsrcを参照
     Dim result As Variant
     Set result = g.iGlob(ThisWorkbook.path & "\..\..\src\*.cls")
 
-    ' Calculator.cls と Glob.cls が存在するはず
-    If g.GetCount < 2 Then
-        Utils.Fail 2060, "iGlob should find at least 2 .cls files in src/"
-    End If
+    ' Calculator.cls, Glob.cls, WebAPI.cls が存在するはず
+    expect(g.GetCount).toBeGreaterThanOrEqual 2
 End Sub
 
 Public Sub Test_iGlob_FindBasFiles()
-    ' test/*.bas ファイルを検索
     Dim g As Glob
     Set g = New Glob
 
     Dim result As Variant
     Set result = g.iGlob(ThisWorkbook.path & "\..\..\test\*.bas")
 
-    ' TestCalculator.bas と TestGlob.bas が存在するはず
-    If g.GetCount < 2 Then
-        Utils.Fail 2061, "iGlob should find at least 2 .bas files in test/"
-    End If
+    ' TestCalculator.bas, TestGlob.bas, TestWebAPI.bas が存在するはず
+    expect(g.GetCount).toBeGreaterThanOrEqual 2
 End Sub
 
 Public Sub Test_iGlob_WithForEach()
-    ' For Each で結果をイテレートできることを確認
     Dim g As Glob
     Set g = New Glob
 
     Dim result As Variant
     Set result = g.iGlob(ThisWorkbook.path & "\..\..\src\*.cls")
 
-    ' デフォルトでDictionaryが使われるため、For Eachでイテレート可能
     Dim count As Long
     Dim item As Variant
     count = 0
@@ -296,7 +233,5 @@ Public Sub Test_iGlob_WithForEach()
         count = count + 1
     Next
 
-    If count < 2 Then
-        Utils.Fail 2062, "For Each should iterate at least 2 items"
-    End If
+    expect(count).toBeGreaterThanOrEqual 2
 End Sub
