@@ -716,6 +716,17 @@ Class Expectation
         Set Not_ = Me
     End Property
 
+    Private Sub Fail(ByVal assertionType, ByVal expected, ByVal showDiff)
+        WScript.Echo ""
+        WScript.Echo "AssertionError: expected " & FormatValue(actual_) & IIf(negated_, " not ", " ") & assertionType
+        If showDiff Then
+            WScript.Echo "  - Expected: " & FormatValue(expected)
+            WScript.Echo "  + Received: " & FormatValue(actual_)
+        End If
+        WScript.Echo ""
+        WScript.Quit 1
+    End Sub
+
     Public Sub toBe(ByVal expected)
         Dim passed
         passed = (actual_ = expected)
@@ -723,11 +734,10 @@ Class Expectation
 
         If Not passed Then
             If negated_ Then
-                WScript.Echo "ASSERTION FAILED: Expected " & FormatValue(actual_) & " not to be " & FormatValue(expected)
+                Fail "to be " & FormatValue(expected), expected, False
             Else
-                WScript.Echo "ASSERTION FAILED: Expected " & FormatValue(expected) & ", but got " & FormatValue(actual_)
+                Fail "to be " & FormatValue(expected), expected, True
             End If
-            WScript.Quit 1
         End If
         negated_ = False
     End Sub
@@ -742,12 +752,7 @@ Class Expectation
         If negated_ Then passed = Not passed
 
         If Not passed Then
-            If negated_ Then
-                WScript.Echo "ASSERTION FAILED: Expected " & FormatValue(actual_) & " not to be truthy"
-            Else
-                WScript.Echo "ASSERTION FAILED: Expected " & FormatValue(actual_) & " to be truthy"
-            End If
-            WScript.Quit 1
+            Fail "to be truthy", True, False
         End If
         negated_ = False
     End Sub
@@ -758,12 +763,7 @@ Class Expectation
         If negated_ Then passed = Not passed
 
         If Not passed Then
-            If negated_ Then
-                WScript.Echo "ASSERTION FAILED: Expected " & FormatValue(actual_) & " not to be falsy"
-            Else
-                WScript.Echo "ASSERTION FAILED: Expected " & FormatValue(actual_) & " to be falsy"
-            End If
-            WScript.Quit 1
+            Fail "to be falsy", False, False
         End If
         negated_ = False
     End Sub
@@ -774,12 +774,7 @@ Class Expectation
         If negated_ Then passed = Not passed
 
         If Not passed Then
-            If negated_ Then
-                WScript.Echo "ASSERTION FAILED: Expected " & FormatValue(actual_) & " not to be greater than " & FormatValue(value)
-            Else
-                WScript.Echo "ASSERTION FAILED: Expected " & FormatValue(actual_) & " to be greater than " & FormatValue(value)
-            End If
-            WScript.Quit 1
+            Fail "to be greater than " & FormatValue(value), value, True
         End If
         negated_ = False
     End Sub
@@ -790,12 +785,7 @@ Class Expectation
         If negated_ Then passed = Not passed
 
         If Not passed Then
-            If negated_ Then
-                WScript.Echo "ASSERTION FAILED: Expected " & FormatValue(actual_) & " not to be less than " & FormatValue(value)
-            Else
-                WScript.Echo "ASSERTION FAILED: Expected " & FormatValue(actual_) & " to be less than " & FormatValue(value)
-            End If
-            WScript.Quit 1
+            Fail "to be less than " & FormatValue(value), value, True
         End If
         negated_ = False
     End Sub
@@ -806,12 +796,7 @@ Class Expectation
         If negated_ Then passed = Not passed
 
         If Not passed Then
-            If negated_ Then
-                WScript.Echo "ASSERTION FAILED: Expected " & FormatValue(actual_) & " not to be >= " & FormatValue(value)
-            Else
-                WScript.Echo "ASSERTION FAILED: Expected " & FormatValue(actual_) & " to be >= " & FormatValue(value)
-            End If
-            WScript.Quit 1
+            Fail "to be >= " & FormatValue(value), value, True
         End If
         negated_ = False
     End Sub
@@ -822,12 +807,7 @@ Class Expectation
         If negated_ Then passed = Not passed
 
         If Not passed Then
-            If negated_ Then
-                WScript.Echo "ASSERTION FAILED: Expected " & FormatValue(actual_) & " not to be <= " & FormatValue(value)
-            Else
-                WScript.Echo "ASSERTION FAILED: Expected " & FormatValue(actual_) & " to be <= " & FormatValue(value)
-            End If
-            WScript.Quit 1
+            Fail "to be <= " & FormatValue(value), value, True
         End If
         negated_ = False
     End Sub
@@ -838,12 +818,7 @@ Class Expectation
         If negated_ Then passed = Not passed
 
         If Not passed Then
-            If negated_ Then
-                WScript.Echo "ASSERTION FAILED: Expected " & FormatValue(actual_) & " not to contain " & FormatValue(substring)
-            Else
-                WScript.Echo "ASSERTION FAILED: Expected " & FormatValue(actual_) & " to contain " & FormatValue(substring)
-            End If
-            WScript.Quit 1
+            Fail "to contain " & FormatValue(substring), substring, True
         End If
         negated_ = False
     End Sub
@@ -854,12 +829,7 @@ Class Expectation
         If negated_ Then passed = Not passed
 
         If Not passed Then
-            If negated_ Then
-                WScript.Echo "ASSERTION FAILED: Expected value not to be Null"
-            Else
-                WScript.Echo "ASSERTION FAILED: Expected Null, but got " & FormatValue(actual_)
-            End If
-            WScript.Quit 1
+            Fail "to be Null", Null, False
         End If
         negated_ = False
     End Sub
@@ -870,12 +840,7 @@ Class Expectation
         If negated_ Then passed = Not passed
 
         If Not passed Then
-            If negated_ Then
-                WScript.Echo "ASSERTION FAILED: Expected value not to be empty"
-            Else
-                WScript.Echo "ASSERTION FAILED: Expected empty, but got " & FormatValue(actual_)
-            End If
-            WScript.Quit 1
+            Fail "to be empty", "", False
         End If
         negated_ = False
     End Sub
